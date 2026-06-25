@@ -3,417 +3,864 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ledger Management - S.A TELECOM</title>
+    <title>LedgerPro - S.A TELECOM</title>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --primary: #2563EB; --primary-light: #3B82F6;
+            --success: #10B981; --warning: #F59E0B; --danger: #EF4444;
+            --sidebar-bg: #0F172A; --sidebar-hover: rgba(255,255,255,0.06);
+            --card-bg: #FFFFFF; --bg: #F8FAFC;
+            --text: #1E293B; --text-muted: #94A3B8; --border: #E2E8F0;
+            --input-bg: #F8FAFC;
+        }
+        .dark {
+            --primary: #3B82F6; --sidebar-bg: #020617;
+            --card-bg: #1E293B; --bg: #0F172A;
+            --text: #F1F5F9; --text-muted: #64748B; --border: #334155;
+            --input-bg: #1E293B;
+        }
+        * { font-family: 'Inter', sans-serif; box-sizing: border-box; }
+        body { background: var(--bg); color: var(--text); margin: 0; transition: background 0.3s, color 0.3s; }
+
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 3px; }
+        .dark ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); }
+
         .tab-content { display: none; }
         .tab-content.active { display: block; }
         #login-overlay.active { display: flex; }
+
+        .glass-card {
+            background: var(--card-bg); border: 1px solid var(--border);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.06);
+            border-radius: 16px; transition: all 0.3s ease;
+        }
+        .glass-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+
+        .stat-icon {
+            width: 48px; height: 48px;
+            border-radius: 14px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 20px;
+        }
+
+        .sidebar-link {
+            display: flex; align-items: center; gap: 12px;
+            padding: 10px 16px; border-radius: 10px;
+            color: rgba(255,255,255,0.55);
+            font-size: 13px; font-weight: 500;
+            transition: all 0.2s ease;
+            cursor: pointer; position: relative; white-space: nowrap;
+            text-decoration: none;
+        }
+        .sidebar-link:hover { color: #fff; background: var(--sidebar-hover); }
+        .sidebar-link.active { color: #fff; background: rgba(37,99,235,0.5); box-shadow: 0 0 20px rgba(37,99,235,0.2); }
+        .sidebar-link.active::before {
+            content: ''; position: absolute; left: -12px; top: 50%; transform: translateY(-50%);
+            width: 4px; height: 20px; border-radius: 0 4px 4px 0; background: #3B82F6;
+        }
+
+        .sidebar-icon {
+            width: 34px; height: 34px; border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 14px; background: rgba(255,255,255,0.06); flex-shrink: 0;
+        }
+        .sidebar-link.active .sidebar-icon { background: rgba(59,130,246,0.4); }
+
+        .sidebar-group { padding: 8px 12px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: rgba(255,255,255,0.25); }
+
+        .btn-primary {
+            background: var(--primary); color: #fff; border: none; border-radius: 10px;
+            padding: 9px 20px; font-size: 13px; font-weight: 600;
+            cursor: pointer; transition: all 0.2s ease;
+            box-shadow: 0 2px 8px rgba(37,99,235,0.25);
+            display: inline-flex; align-items: center; gap: 6px;
+        }
+        .btn-primary:hover { background: var(--primary-light); transform: translateY(-1px); box-shadow: 0 4px 16px rgba(37,99,235,0.35); }
+
+        .btn-secondary {
+            background: transparent; color: var(--primary); border: 1.5px solid var(--primary);
+            border-radius: 10px; padding: 9px 20px;
+            font-size: 13px; font-weight: 600; cursor: pointer;
+            transition: all 0.2s ease; display: inline-flex; align-items: center; gap: 6px;
+        }
+        .btn-secondary:hover { background: rgba(37,99,235,0.06); }
+
+        .input-modern {
+            width: 100%; border: 1.5px solid var(--border); border-radius: 10px;
+            padding: 11px 14px; font-size: 13px; outline: none;
+            transition: all 0.2s ease; background: var(--input-bg); color: var(--text);
+        }
+        .input-modern:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+
+        .select-modern {
+            width: 100%; border: 1.5px solid var(--border); border-radius: 10px;
+            padding: 11px 14px; font-size: 13px; outline: none; appearance: none;
+            background: var(--input-bg) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M6 8L1 3h10z' fill='%239ca3af'/%3E%3C/svg%3E") no-repeat right 14px center;
+            transition: all 0.2s ease; color: var(--text);
+        }
+        .select-modern:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+
+        .table-modern th {
+            position: sticky; top: 0;
+            font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em;
+            color: var(--text-muted); padding: 12px 16px; text-align: left;
+            z-index: 1;
+        }
+        .table-modern thead { background: var(--card-bg); }
+        .table-modern td { padding: 12px 16px; border-bottom: 1px solid var(--border); font-size: 13px; }
+        .table-modern tr:hover td { background: rgba(37,99,235,0.02); }
+
+        .page-title { font-size: 24px; font-weight: 800; color: var(--text); letter-spacing: -0.02em; }
+        .page-subtitle { font-size: 13px; color: var(--text-muted); font-weight: 400; margin-top: 2px; }
+
+        .kpi-value { font-size: 26px; font-weight: 800; line-height: 1.1; }
+        .kpi-label { font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+        .fade-in { animation: fadeIn 0.35s ease forwards; }
+
+        @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
+        .pulse { animation: pulse 2s ease-in-out infinite; }
+
+        /* Dark mode toggle */
+        .toggle-track { width: 44px; height: 24px; border-radius: 12px; background: #CBD5E1; cursor: pointer; position: relative; transition: background 0.3s; }
+        .toggle-track.on { background: var(--primary); }
+        .toggle-thumb { width: 20px; height: 20px; border-radius: 50%; background: #fff; position: absolute; top: 2px; left: 2px; transition: transform 0.3s; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+        .toggle-track.on .toggle-thumb { transform: translateX(20px); }
+
+        /* Mobile */
+        @media (max-width: 768px) {
+            #sidebar { transform: translateX(-100%); transition: transform 0.3s ease; }
+            #sidebar.open { transform: translateX(0); }
+            #sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 35; }
+            #sidebar-overlay.active { display: block; }
+            main { margin-left: 0 !important; padding: 16px !important; padding-bottom: 80px !important; }
+            #menu-toggle { display: flex !important; }
+        }
+        @media (min-width: 769px) {
+            #menu-toggle { display: none !important; }
+            #sidebar-overlay { display: none !important; }
+        }
+
+        /* Activity timeline */
+        .timeline-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+        .timeline-line { width: 2px; background: var(--border); flex-grow: 1; margin: 4px 0; align-self: center; }
+
+        /* Search highlight */
+        .search-highlight { background: rgba(245,158,11,0.3); border-radius: 2px; }
+
+        @media print {
+            #sidebar, #menu-toggle, .btn-primary, .btn-secondary { display: none !important; }
+            main { margin-left: 0 !important; padding: 0 !important; }
+        }
     </style>
 </head>
-<body class="bg-gray-50 font-sans">
+<body>
 
-    <!-- Login Overlay -->
-    <div id="login-overlay" class="fixed inset-0 bg-black/60 z-50 hidden items-center justify-center">
-        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 p-8">
-            <div class="text-center mb-6">
-                <div class="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                    <i class="fa-solid fa-book-open text-2xl text-indigo-700"></i>
+    <!-- Sidebar Overlay (mobile) -->
+    <div id="sidebar-overlay" onclick="closeSidebar()"></div>
+
+    <!-- Login Overlay (two-panel design) -->
+    <div id="login-overlay" class="fixed inset-0 z-50 hidden" style="background: linear-gradient(135deg, #0F172A 0%, #1E3A5F 100%);">
+        <div style="display:flex; width:100%; height:100vh;">
+            <!-- Left Branding Panel -->
+            <div class="hidden lg:flex lg:w-1/2 items-center justify-center p-12" style="background: linear-gradient(135deg, #1E293B 0%, #0F172A 100%);">
+                <div class="max-w-md text-center">
+                    <div style="width:80px;height:80px;border-radius:24px;margin:0 auto 24px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#3B82F6,#2563EB);">
+                        <i class="fa-solid fa-satellite-dish text-4xl text-white"></i>
+                    </div>
+                    <h1 style="font-size:36px;font-weight:900;color:#fff;letter-spacing:-0.02em;margin-bottom:8px;">S.A TELECOM</h1>
+                    <p style="font-size:18px;color:#94A3B8;margin-bottom:32px;">Ledger Management System</p>
+                    <div class="flex justify-center gap-4 text-white/40 text-sm">
+                        <div class="text-center"><i class="fa-solid fa-shield-halved text-2xl block mb-2 text-blue-400"></i>Secure</div>
+                        <div class="text-center"><i class="fa-solid fa-bolt text-2xl block mb-2 text-blue-400"></i>Fast</div>
+                        <div class="text-center"><i class="fa-solid fa-chart-line text-2xl block mb-2 text-blue-400"></i>Insightful</div>
+                    </div>
                 </div>
-                <h2 class="text-2xl font-bold text-gray-800">LedgerPro</h2>
-                <p class="text-sm text-gray-500 mt-1">S.A TELECOM Management System</p>
             </div>
-            <form id="login-form" class="space-y-4" onsubmit="event.preventDefault(); login();">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Username</label>
-                    <input type="text" id="login-username" value="admin" class="w-full border border-gray-300 rounded-lg px-4 py-2.5 outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+            <!-- Right Login Panel -->
+            <div class="w-full lg:w-1/2 flex items-center justify-center p-8">
+                <div class="glass-card p-10 w-full max-w-md" style="background:rgba(255,255,255,0.98);border-radius:20px;">
+                    <div class="text-center mb-6">
+                        <div style="width:56px;height:56px;border-radius:16px;margin:0 auto 16px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#3B82F6,#2563EB);">
+                            <i class="fa-solid fa-book-open text-xl text-white"></i>
+                        </div>
+                        <h2 style="font-size:22px;font-weight:800;color:#1E293B;letter-spacing:-0.02em;">Welcome Back</h2>
+                        <p style="font-size:13px;color:#94A3B8;margin-top:4px;">Sign in to your ledger account</p>
+                    </div>
+                    <form id="login-form" class="space-y-5" onsubmit="event.preventDefault(); login();">
+                        <div>
+                            <label style="display:block;font-size:11px;font-weight:700;color:#64748B;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.05em;">Username</label>
+                            <input type="text" id="login-username" placeholder="Enter your username" class="input-modern" style="background:#F8FAFC;border-color:#E2E8F0;">
+                        </div>
+                        <div>
+                            <label style="display:block;font-size:11px;font-weight:700;color:#64748B;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.05em;">Password</label>
+                            <input type="password" id="login-password" placeholder="Enter your password" class="input-modern" style="background:#F8FAFC;border-color:#E2E8F0;">
+                        </div>
+                        <p id="login-error" class="text-red-500 text-sm hidden"></p>
+                        <button type="submit" class="btn-primary w-full justify-center py-3 text-sm" style="border-radius:12px;">
+                            <i class="fa-solid fa-right-to-bracket mr-2"></i>Sign In
+                        </button>
+                    </form>
+                    <p style="text-align:center;font-size:11px;color:#CBD5E1;margin-top:20px;">Default: admin / admin123</p>
                 </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
-                    <input type="password" id="login-password" value="admin123" class="w-full border border-gray-300 rounded-lg px-4 py-2.5 outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
-                </div>
-                <p id="login-error" class="text-red-600 text-sm hidden"></p>
-                <button type="submit" class="w-full bg-indigo-600 text-white rounded-lg px-4 py-2.5 font-medium hover:bg-indigo-700 transition-all">
-                    <i class="fa-solid fa-right-to-bracket mr-2"></i>Sign In
-                </button>
-            </form>
+            </div>
         </div>
     </div>
 
-    <!-- Navigation -->
-    <nav class="bg-indigo-900 text-white shadow-lg">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex items-center justify-between h-16">
-                <div class="flex items-center">
-                    <span class="font-bold text-xl tracking-wider"><i class="fa-solid fa-book-open mr-2"></i>LedgerPro</span>
-                    <div class="hidden md:block ml-10 flex space-x-4">
-                        <a href="#" class="nav-link bg-indigo-800 px-3 py-2 rounded-md text-sm font-medium" onclick="switchTab('dashboard-tab', this)"><i class="fa-solid fa-chart-pie mr-1"></i> Dashboard</a>
-                        <a href="#" class="nav-link hover:bg-indigo-800 px-3 py-2 rounded-md text-sm font-medium" onclick="switchTab('entry-tab', this)"><i class="fa-solid fa-cart-shopping mr-1"></i> Sell Entry</a>
-                        <a href="#" class="nav-link hover:bg-indigo-800 px-3 py-2 rounded-md text-sm font-medium" onclick="switchTab('report-tab', this)"><i class="fa-solid fa-file-invoice mr-1"></i> Reports</a>
-                        <a href="#" class="nav-link hover:bg-indigo-800 px-3 py-2 rounded-md text-sm font-medium" onclick="switchTab('dues-tab', this)"><i class="fa-solid fa-hand-holding-dollar mr-1"></i> Dues & Payments</a>
-                    </div>
-                </div>
-                <div class="flex items-center gap-4">
-                    <span class="text-sm bg-indigo-800 px-3 py-1 rounded-full" id="header-date"></span>
-                    <div class="flex items-center gap-2">
-                        <i class="fa-solid fa-user-circle text-2xl"></i>
-                        <span class="hidden sm:inline text-sm font-medium" id="header-user">Admin</span>
-                    </div>
-                    <button onclick="logout()" class="text-sm bg-red-600/80 hover:bg-red-600 px-3 py-1 rounded-md transition-all">
-                        <i class="fa-solid fa-sign-out-alt mr-1"></i>Exit
-                    </button>
-                </div>
-            </div>
-            <div class="md:hidden flex justify-around py-2 border-t border-indigo-800 text-xs">
-                <a href="#" class="flex flex-col items-center" onclick="switchTab('dashboard-tab', this)"><i class="fa-solid fa-chart-pie text-base mb-1"></i>Dashboard</a>
-                <a href="#" class="flex flex-col items-center" onclick="switchTab('entry-tab', this)"><i class="fa-solid fa-cart-shopping text-base mb-1"></i>Sell</a>
-                <a href="#" class="flex flex-col items-center" onclick="switchTab('report-tab', this)"><i class="fa-solid fa-file-invoice text-base mb-1"></i>Reports</a>
-                <a href="#" class="flex flex-col items-center" onclick="switchTab('dues-tab', this)"><i class="fa-solid fa-hand-holding-dollar text-base mb-1"></i>Payments</a>
-            </div>
-        </div>
-    </nav>
+    <div style="display:flex; min-height:100vh;">
+        <!-- Sidebar -->
+        <aside id="sidebar" style="width:240px;flex-shrink:0;display:flex;flex-direction:column;border-radius:0 20px 20px 0;background:var(--sidebar-bg);position:fixed;top:0;left:0;height:100vh;z-index:40;overflow-y:auto;overflow-x:hidden;transition:background 0.3s;">
+            <style>#sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); }</style>
 
-    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-
-        <!-- Dashboard Tab -->
-        <div id="dashboard-tab" class="tab-content active space-y-6">
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-5">
-                <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100 flex items-center justify-between">
-                    <div>
-                        <p class="text-sm font-medium text-gray-500">Opening Balance (B)</p>
-                        <p class="text-2xl font-bold text-gray-800 mt-1" id="dash-opening">Tk 0</p>
+            <!-- Logo -->
+            <div style="padding:20px 20px 12px;display:flex;align-items:center;justify-content:space-between;">
+                <div style="display:flex;align-items:center;gap:10px;">
+                    <div style="width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.1);">
+                        <i class="fa-solid fa-satellite-dish text-white text-sm"></i>
                     </div>
-                    <div class="w-12 h-12 bg-blue-50 rounded-full flex items-center justify-center text-blue-600"><i class="fa-solid fa-wallet text-xl"></i></div>
-                </div>
-                <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100 flex items-center justify-between">
-                    <div>
-                        <p class="text-sm font-medium text-gray-500">Main Ledger Total</p>
-                        <p class="text-2xl font-bold text-emerald-600 mt-1" id="dash-main-ledger">Tk 0</p>
-                    </div>
-                    <div class="w-12 h-12 bg-emerald-50 rounded-full flex items-center justify-center text-emerald-600"><i class="fa-solid fa-arrow-trend-up text-xl"></i></div>
-                </div>
-                <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100 flex items-center justify-between">
-                    <div>
-                        <p class="text-sm font-medium text-gray-500">Cash Distribution Out</p>
-                        <p class="text-2xl font-bold text-rose-600 mt-1" id="dash-cash-out">Tk 0</p>
-                    </div>
-                    <div class="w-12 h-12 bg-rose-50 rounded-full flex items-center justify-center text-rose-600"><i class="fa-solid fa-arrow-trend-down text-xl"></i></div>
-                </div>
-                <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100 flex items-center justify-between">
-                    <div>
-                        <p class="text-sm font-medium text-gray-500">Net Ledger Total (To)</p>
-                        <p class="text-2xl font-bold text-indigo-600 mt-1" id="dash-net-ledger">Tk 0</p>
-                    </div>
-                    <div class="w-12 h-12 bg-indigo-50 rounded-full flex items-center justify-center text-indigo-600"><i class="fa-solid fa-calculator text-xl"></i></div>
+                    <span style="font-size:15px;font-weight:800;color:#fff;letter-spacing:-0.02em;">S.A TELECOM</span>
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-                <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100 flex items-center justify-between">
-                    <div>
-                        <p class="text-sm font-medium text-amber-600"><i class="fa-solid fa-triangle-exclamation mr-1"></i> Total Outstanding Dues</p>
-                        <p class="text-3xl font-bold text-gray-800 mt-1" id="dash-total-dues">Tk 0</p>
-                    </div>
-                    <div class="w-14 h-14 bg-amber-50 rounded-full flex items-center justify-center text-amber-600"><i class="fa-solid fa-book-bookmark text-2xl"></i></div>
-                </div>
-                <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100 flex items-center justify-between">
-                    <div>
-                        <p class="text-sm font-medium text-emerald-600"><i class="fa-solid fa-circle-check mr-1"></i> Total Collected Today</p>
-                        <p class="text-3xl font-bold text-gray-800 mt-1" id="dash-total-collected">Tk 0</p>
-                    </div>
-                    <div class="w-14 h-14 bg-emerald-50 rounded-full flex items-center justify-center text-emerald-600"><i class="fa-solid fa-money-check-dollar text-2xl"></i></div>
-                </div>
-            </div>
+            <!-- Nav Groups -->
+            <nav style="padding:0 12px;flex:1;overflow-y:auto;">
 
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                    <h3 class="text-base font-bold text-gray-700 mb-4"><i class="fa-solid fa-chart-column mr-2 text-indigo-500"></i>Top Earning Categories (Tk)</h3>
-                    <canvas id="topItemsChart" height="140"></canvas>
-                </div>
-                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                    <h3 class="text-base font-bold text-gray-700 mb-4"><i class="fa-solid fa-chart-pie mr-2 text-rose-500"></i>Cash Distribution Breakdown</h3>
-                    <canvas id="cashDistributionChart" height="140"></canvas>
-                </div>
-            </div>
-        </div>
+                <div class="sidebar-group">Main</div>
+                <a class="sidebar-link active" onclick="switchTab('dashboard-tab', this)" style="margin-bottom:2px;">
+                    <div class="sidebar-icon"><i class="fa-solid fa-grid-2"></i></div>
+                    <span>Dashboard</span>
+                </a>
 
-        <!-- Entry Tab -->
-        <div id="entry-tab" class="tab-content hidden max-w-4xl mx-auto bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
-            <div class="flex items-center gap-3 mb-6 border-b pb-4">
-                <div class="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-lg flex items-center justify-center"><i class="fa-solid fa-file-pen text-lg"></i></div>
+                <div class="sidebar-group" style="margin-top:8px;">Sales</div>
+                <a class="sidebar-link" onclick="switchTab('entry-tab', this)" style="margin-bottom:2px;">
+                    <div class="sidebar-icon"><i class="fa-solid fa-plus-circle"></i></div>
+                    <span>Add Sale</span>
+                </a>
+                <a class="sidebar-link" onclick="switchTab('market-tab', this)" style="margin-bottom:2px;">
+                    <div class="sidebar-icon"><i class="fa-solid fa-store"></i></div>
+                    <span>Market Sale</span>
+                </a>
+
+                <div class="sidebar-group" style="margin-top:8px;">Finance</div>
+                <a class="sidebar-link" onclick="switchTab('dues-tab', this)" style="margin-bottom:2px;">
+                    <div class="sidebar-icon"><i class="fa-solid fa-hand-holding-dollar"></i></div>
+                    <span>Dues & Payments</span>
+                </a>
+                <a class="sidebar-link" onclick="switchTab('report-tab', this)" style="margin-bottom:2px;">
+                    <div class="sidebar-icon"><i class="fa-solid fa-chart-bar"></i></div>
+                    <span>Reports</span>
+                </a>
+
+                <div class="sidebar-group" style="margin-top:8px;">Admin</div>
+                <a class="sidebar-link" onclick="switchTab('backup-tab', this)" style="margin-bottom:2px;">
+                    <div class="sidebar-icon"><i class="fa-solid fa-database"></i></div>
+                    <span>Backup & Recovery</span>
+                </a>
+                <a class="sidebar-link" id="nav-users" onclick="switchTab('users-tab', this)" style="display:none;margin-bottom:2px;">
+                    <div class="sidebar-icon"><i class="fa-solid fa-users"></i></div>
+                    <span>Manage Users</span>
+                </a>
+            </nav>
+
+            <!-- Bottom -->
+            <div style="padding:0 12px 16px;margin-top:auto;">
+                <div style="padding:12px 16px;border-radius:14px;margin-bottom:8px;background:var(--sidebar-hover);display:flex;align-items:center;gap:10px;">
+                    <div style="width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.08);">
+                        <i class="fa-solid fa-calendar-days text-white/60 text-xs"></i>
+                    </div>
+                    <span style="font-size:12px;color:rgba(255,255,255,0.7);font-weight:600;" id="sidebar-date"></span>
+                </div>
+                <div style="padding:12px 16px;border-radius:14px;margin-bottom:8px;background:var(--sidebar-hover);display:flex;align-items:center;gap:10px;">
+                    <div style="width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;background:rgba(37,99,235,0.5);">
+                        <i class="fa-solid fa-user"></i>
+                    </div>
+                    <div>
+                        <p style="font-size:12px;color:#fff;font-weight:600;" id="sidebar-user">Admin</p>
+                        <p style="font-size:10px;color:rgba(255,255,255,0.4);" id="sidebar-role">Administrator</p>
+                    </div>
+                </div>
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 16px;border-radius:14px;margin-bottom:8px;background:var(--sidebar-hover);">
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <i class="fa-solid fa-moon text-white/50 text-xs"></i>
+                        <span style="font-size:11px;color:rgba(255,255,255,0.6);font-weight:600;">Dark Mode</span>
+                    </div>
+                    <div class="toggle-track" id="dark-toggle" onclick="toggleDark()">
+                        <div class="toggle-thumb"></div>
+                    </div>
+                </div>
+                <button onclick="logout()" style="width:100%;padding:11px;border-radius:12px;border:none;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;background:rgba(239,68,68,0.15);color:#EF4444;transition:all 0.2s;">
+                    <i class="fa-solid fa-right-from-bracket"></i> Sign Out
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main -->
+        <main style="flex:1;margin-left:240px;padding:32px;min-height:100vh;">
+
+            <!-- Mobile Menu Toggle -->
+            <button id="menu-toggle" style="position:fixed;top:16px;left:16px;z-index:50;width:42px;height:42px;border-radius:12px;border:none;display:flex;align-items:center;justify-content:center;color:#fff;cursor:pointer;background:var(--primary);box-shadow:0 4px 12px rgba(37,99,235,0.3);" onclick="toggleSidebar()">
+                <i class="fa-solid fa-bars"></i>
+            </button>
+
+            <!-- Dashboard Tab -->
+            <div id="dashboard-tab" class="tab-content active fade-in" style="display:flex;flex-direction:column;gap:24px;">
                 <div>
-                    <h2 class="text-xl font-bold text-gray-800">Sell Entry Form</h2>
-                    <p class="text-xs text-gray-500">Record new sales and cash out transactions for the day.</p>
-                </div>
-            </div>
-
-            <p id="entry-feedback" class="hidden text-sm font-medium px-4 py-3 rounded-lg mb-4"></p>
-
-            <form id="entry-form" class="space-y-6" onsubmit="event.preventDefault(); submitEntry();">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Date</label>
-                        <input type="date" id="entry-date" class="w-full border border-gray-300 rounded-lg px-4 py-2.5 outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Opening Balance (B)</label>
-                        <input type="text" id="entry-opening" class="w-full border border-gray-300 rounded-lg px-4 py-2.5 bg-gray-50 text-gray-600" readonly>
-                    </div>
+                    <h1 class="page-title">Dashboard</h1>
+                    <p class="page-subtitle">Real-time business overview</p>
                 </div>
 
-                <div class="border-t pt-6 border-gray-100">
-                    <h3 class="text-base font-semibold text-gray-800 mb-4">Transaction Details</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                        <div class="md:col-span-2">
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Item / Description</label>
-                            <input type="text" id="entry-desc" placeholder="e.g. C61-LCD-সমাধান" class="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none" required>
+                <!-- KPI Cards Row 1 -->
+                <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:16px;">
+                    <div class="glass-card" style="padding:20px;">
+                        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+                            <span class="kpi-label">Today's Sales</span>
+                            <div class="stat-icon" style="background:#EFF6FF;"><i class="fa-solid fa-arrow-trend-up" style="color:#2563EB"></i></div>
                         </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Amount (Tk)</label>
-                            <input type="number" id="entry-amount" placeholder="0.00" step="0.01" min="1" class="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none" required>
+                        <p class="kpi-value" style="color:#2563EB;" id="dash-main-ledger">Tk 0</p>
+                    </div>
+                    <div class="glass-card" style="padding:20px;">
+                        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+                            <span class="kpi-label">Cash Out</span>
+                            <div class="stat-icon" style="background:#FEF2F2;"><i class="fa-solid fa-arrow-trend-down" style="color:#EF4444"></i></div>
                         </div>
+                        <p class="kpi-value" style="color:#EF4444;" id="dash-cash-out">Tk 0</p>
                     </div>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Notes (e.g. Du / BT)</label>
-                            <input type="text" id="entry-notes" placeholder="Extra note if any" class="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none">
+                    <div class="glass-card" style="padding:20px;">
+                        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+                            <span class="kpi-label">Opening Balance</span>
+                            <div class="stat-icon" style="background:#F0FDF4;"><i class="fa-solid fa-wallet" style="color:#10B981"></i></div>
                         </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Entry Type</label>
-                            <select id="entry-type" class="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none">
-                                <option value="main">Main Ledger Entry</option>
-                                <option value="cashout">Cash Out / Distribution</option>
-                            </select>
+                        <p class="kpi-value" style="color:#10B981;" id="dash-opening">Tk 0</p>
+                    </div>
+                    <div class="glass-card" style="padding:20px;">
+                        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+                            <span class="kpi-label">Net Ledger</span>
+                            <div class="stat-icon" style="background:#F5F3FF;"><i class="fa-solid fa-calculator" style="color:#7C3AED"></i></div>
                         </div>
+                        <p class="kpi-value" style="color:#7C3AED;" id="dash-net-ledger">Tk 0</p>
                     </div>
                 </div>
 
-                <div class="flex justify-end gap-4 border-t pt-6">
-                    <button type="reset" class="px-6 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition-all">Clear</button>
-                    <button type="submit" id="entry-submit-btn" class="px-6 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium shadow-sm transition-all"><i class="fa-solid fa-plus mr-2"></i>Save Entry</button>
-                </div>
-            </form>
-        </div>
-
-        <!-- Reports Tab -->
-        <div id="report-tab" class="tab-content hidden space-y-6">
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-xl shadow-sm border border-gray-100">
-                <div>
-                    <h2 class="text-xl font-bold text-gray-800">Daily Ledger Report</h2>
-                    <p class="text-xs text-gray-500" id="report-date-label">Full financial summary for today.</p>
-                </div>
-                <div class="flex gap-2">
-                    <button onclick="window.print()" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition-all"><i class="fa-solid fa-print mr-2"></i>Print Report</button>
-                    <button onclick="exportCSV()" class="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 transition-all"><i class="fa-solid fa-file-excel mr-2"></i>Export CSV</button>
-                </div>
-            </div>
-
-            <div class="flex gap-2 items-center bg-white p-4 rounded-xl shadow-sm border border-gray-100">
-                <label class="text-sm font-medium text-gray-600">Select Date:</label>
-                <input type="date" id="report-date-picker" class="border border-gray-300 rounded-lg px-3 py-1.5 text-sm outline-none focus:ring-2 focus:ring-indigo-500">
-                <button onclick="loadReport()" class="px-4 py-1.5 bg-indigo-600 text-white rounded-lg text-sm hover:bg-indigo-700 transition-all"><i class="fa-solid fa-rotate mr-1"></i>Load</button>
-            </div>
-
-            <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
-                <div class="xl:col-span-2 bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                    <div class="px-6 py-4 border-b border-gray-50 bg-gray-50/50 flex justify-between items-center">
-                        <h3 class="font-bold text-gray-700"><i class="fa-solid fa-list-check mr-2 text-indigo-600"></i>Main Ledger Entries</h3>
-                        <span class="text-xs bg-indigo-50 text-indigo-600 font-bold px-3 py-1 rounded-full" id="report-main-subtotal">Subtotal: Tk 0</span>
+                <!-- KPI Row 2 -->
+                <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:16px;">
+                    <div class="glass-card" style="padding:20px;">
+                        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+                            <span class="kpi-label">Outstanding Dues</span>
+                            <div class="stat-icon" style="background:#FFFBEB;"><i class="fa-solid fa-triangle-exclamation" style="color:#F59E0B"></i></div>
+                        </div>
+                        <p class="kpi-value" style="color:#F59E0B;" id="dash-total-dues">Tk 0</p>
                     </div>
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left text-sm">
-                            <thead class="bg-gray-50 text-gray-500 text-xs uppercase">
-                                <tr>
-                                    <th class="px-6 py-3">#</th>
-                                    <th class="px-6 py-3">Description</th>
-                                    <th class="px-6 py-3">Notes</th>
-                                    <th class="px-6 py-3 text-right">Amount</th>
-                                </tr>
-                            </thead>
-                            <tbody id="report-main-body" class="divide-y divide-gray-100 text-gray-700">
-                                <tr><td colspan="4" class="px-6 py-4 text-center text-gray-400">No entries for this date.</td></tr>
-                            </tbody>
-                            <tfoot class="bg-gray-50 font-bold text-gray-800">
-                                <tr>
-                                    <td colspan="3" class="px-6 py-3 text-right">Total Ledger:</td>
-                                    <td class="px-6 py-3 text-right text-emerald-600" id="report-main-total">Tk 0</td>
-                                </tr>
-                            </tfoot>
-                        </table>
+                    <div class="glass-card" style="padding:20px;">
+                        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+                            <span class="kpi-label">Collected Today</span>
+                            <div class="stat-icon" style="background:#F0FDF4;"><i class="fa-solid fa-money-check-dollar" style="color:#10B981"></i></div>
+                        </div>
+                        <p class="kpi-value" style="color:#10B981;" id="dash-total-collected">Tk 0</p>
                     </div>
                 </div>
 
-                <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                    <div class="px-6 py-4 border-b border-gray-50 bg-gray-50/50 flex justify-between items-center">
-                        <h3 class="font-bold text-gray-700"><i class="fa-solid fa-money-bill-transfer mr-2 text-rose-600"></i>Cash Out / Distribution</h3>
-                        <span class="text-xs bg-rose-50 text-rose-600 font-bold px-3 py-1 rounded-full" id="report-cashout-total-label">Total: Tk 0</span>
+                <!-- Charts -->
+                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(400px,1fr));gap:20px;">
+                    <div class="glass-card" style="padding:24px;">
+                        <h3 style="font-size:14px;font-weight:700;color:var(--text);margin:0 0 20px;display:flex;align-items:center;gap:8px;">
+                            <span style="width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;background:#EFF6FF;"><i class="fa-solid fa-chart-column text-blue-600 text-sm"></i></span>
+                            Top Earning Categories
+                        </h3>
+                        <canvas id="topItemsChart" height="180"></canvas>
                     </div>
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left text-sm">
-                            <thead class="bg-gray-50 text-gray-500 text-xs uppercase">
-                                <tr>
-                                    <th class="px-6 py-3">Receiver / Head</th>
-                                    <th class="px-6 py-3 text-right">Amount</th>
-                                </tr>
-                            </thead>
-                            <tbody id="report-cashout-body" class="divide-y divide-gray-100 text-gray-700">
-                                <tr><td colspan="2" class="px-6 py-4 text-center text-gray-400">No cash out for this date.</td></tr>
-                            </tbody>
-                            <tfoot class="bg-gray-50 font-bold text-gray-800">
-                                <tr>
-                                    <td class="px-6 py-3 text-right">Total Out:</td>
-                                    <td class="px-6 py-3 text-right text-rose-600" id="report-cashout-total">Tk 0</td>
-                                </tr>
-                            </tfoot>
-                        </table>
+                    <div class="glass-card" style="padding:24px;">
+                        <h3 style="font-size:14px;font-weight:700;color:var(--text);margin:0 0 20px;display:flex;align-items:center;gap:8px;">
+                            <span style="width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;background:#FEF2F2;"><i class="fa-solid fa-chart-pie text-red-500 text-sm"></i></span>
+                            Cash Distribution
+                        </h3>
+                        <canvas id="cashDistributionChart" height="180"></canvas>
+                    </div>
+                </div>
+
+                <!-- Activity Feed -->
+                <div class="glass-card" style="padding:24px;">
+                    <h3 style="font-size:14px;font-weight:700;color:var(--text);margin:0 0 16px;display:flex;align-items:center;gap:8px;">
+                        <span style="width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;background:#F0FDF4;"><i class="fa-solid fa-clock-rotate-left text-green-600 text-sm"></i></span>
+                        Recent Activity
+                    </h3>
+                    <div id="activity-feed" style="display:flex;flex-direction:column;gap:8px;">
+                        <div style="display:flex;align-items:center;gap:12px;color:var(--text-muted);font-size:13px;padding:20px;text-align:center;justify-content:center;">
+                            <i class="fa-solid fa-spinner fa-spin"></i> Loading...
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <div class="bg-indigo-900 text-white rounded-xl p-6 shadow-lg flex flex-col md:flex-row justify-between items-center gap-6">
-                <div>
-                    <h3 class="text-lg font-bold opacity-90" id="report-summary-title">Daily Summary Report</h3>
-                    <p class="text-xs opacity-75 mt-1">Opening Balance + Ledger In - Cash Paid Out</p>
+            <!-- Add Sale Tab -->
+            <div id="entry-tab" class="tab-content hidden fade-in">
+                <div style="margin-bottom:24px;">
+                    <h1 class="page-title">Add Sale</h1>
+                    <p class="page-subtitle">Record sales and cash out transactions</p>
                 </div>
-                <div class="flex flex-wrap items-center gap-4 bg-indigo-950/40 px-6 py-4 rounded-xl border border-indigo-800/50">
-                    <div class="text-center">
-                        <span class="text-xs font-medium block opacity-75">Opening</span>
-                        <span class="text-xl font-bold" id="report-summary-opening">Tk 0</span>
-                    </div>
-                    <div class="text-xl font-extrabold opacity-50">+</div>
-                    <div class="text-center">
-                        <span class="text-xs font-medium block opacity-75">Ledger In</span>
-                        <span class="text-xl font-bold" id="report-summary-ledger">Tk 0</span>
-                    </div>
-                    <div class="text-xl font-extrabold opacity-50">-</div>
-                    <div class="text-center">
-                        <span class="text-xs font-medium block opacity-75">Cash Out</span>
-                        <span class="text-xl font-bold text-rose-400" id="report-summary-cashout">Tk 0</span>
-                    </div>
-                    <div class="h-8 border-r border-indigo-700"></div>
-                    <div class="text-center">
-                        <span class="text-xs font-medium block text-emerald-300">Net (To)</span>
-                        <span class="text-2xl font-black text-emerald-400" id="report-summary-net">Tk 0</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Dues Tab -->
-        <div id="dues-tab" class="tab-content hidden space-y-6">
-            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                <div class="flex items-center gap-3 mb-6 border-b pb-4">
-                    <div class="w-10 h-10 bg-amber-50 text-amber-600 rounded-lg flex items-center justify-center"><i class="fa-solid fa-hand-holding-dollar text-lg"></i></div>
-                    <div>
-                        <h2 class="text-xl font-bold text-gray-800">Dues & Collection Tracker</h2>
-                        <p class="text-xs text-gray-500">Manage client credits and supplier payables.</p>
-                    </div>
-                </div>
-
-                <p id="dues-feedback" class="hidden text-sm font-medium px-4 py-3 rounded-lg mb-4"></p>
-
-                <!-- Supplier Payment Section -->
-                <div class="bg-rose-50/50 border border-rose-200 p-5 rounded-xl mb-8">
-                    <h3 class="text-sm font-bold text-rose-800 mb-4"><i class="fa-solid fa-truck mr-1"></i> Supplier Payment</h3>
-                    <form id="add-supplier-payment-form" class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 items-end" onsubmit="event.preventDefault(); addSupplierPayment();">
-                        <div>
-                            <label class="block text-xs font-medium text-gray-600 mb-1">Supplier Name</label>
-                            <input type="text" id="sp-supplier" placeholder="e.g. Parts Vendor" required class="w-full bg-white border border-rose-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-rose-500">
+                <div class="glass-card" style="padding:32px;max-width:800px;">
+                    <p id="entry-feedback" class="hidden" style="font-size:13px;font-weight:500;padding:10px 16px;border-radius:10px;margin-bottom:20px;"></p>
+                    <form id="entry-form" onsubmit="event.preventDefault(); submitEntry();" style="display:flex;flex-direction:column;gap:20px;">
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+                            <div>
+                                <label style="display:block;font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;">Date</label>
+                                <input type="date" id="entry-date" class="input-modern">
+                            </div>
+                            <div>
+                                <label style="display:block;font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;">Opening Balance</label>
+                                <input type="text" id="entry-opening" class="input-modern" readonly style="opacity:0.7;">
+                            </div>
                         </div>
-                        <div>
-                            <label class="block text-xs font-medium text-gray-600 mb-1">Amount (Tk)</label>
-                            <input type="number" id="sp-amount" placeholder="e.g. 2000" min="1" required class="w-full bg-white border border-rose-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-rose-500">
+                        <div style="border-top:1px solid var(--border);padding-top:20px;">
+                            <h3 style="font-size:12px;font-weight:700;color:var(--text);margin:0 0 16px;text-transform:uppercase;letter-spacing:0.05em;">Transaction Details</h3>
+                            <div style="display:grid;grid-template-columns:2fr 1fr;gap:12px;margin-bottom:12px;">
+                                <div>
+                                    <label style="display:block;font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;">Item / Description</label>
+                                    <input type="text" id="entry-desc" placeholder="e.g. C61-LCD" class="input-modern" required>
+                                </div>
+                                <div>
+                                    <label style="display:block;font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;">Amount (Tk)</label>
+                                    <input type="number" id="entry-amount" placeholder="0.00" step="0.01" min="1" class="input-modern" required>
+                                </div>
+                            </div>
+                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                                <div>
+                                    <label style="display:block;font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;">Notes</label>
+                                    <input type="text" id="entry-notes" placeholder="Extra note if any" class="input-modern">
+                                </div>
+                                <div>
+                                    <label style="display:block;font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;">Entry Type</label>
+                                    <select id="entry-type" class="select-modern">
+                                        <option value="main">Main Ledger Entry</option>
+                                        <option value="cashout">Cash Out / Distribution</option>
+                                    </select>
+                                </div>
+                            </div>
                         </div>
-                        <div>
-                            <label class="block text-xs font-medium text-gray-600 mb-1">Details / Note</label>
-                            <input type="text" id="sp-note" placeholder="Parts/Remarks" class="w-full bg-white border border-rose-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-rose-500">
+                        <div style="border-top:1px solid var(--border);padding-top:20px;display:flex;justify-content:flex-end;gap:12px;">
+                            <button type="reset" class="btn-secondary">Clear</button>
+                            <button type="submit" id="entry-submit-btn" class="btn-primary"><i class="fa-solid fa-plus"></i> Save Entry</button>
                         </div>
-                        <button type="submit" class="w-full bg-rose-600 text-white rounded-lg px-4 py-2 text-sm font-medium hover:bg-rose-700 transition-all"><i class="fa-solid fa-circle-plus mr-1"></i> Add Payable</button>
-                    </form>
-                    <div class="overflow-x-auto rounded-xl border border-rose-100">
-                        <table class="w-full text-left text-sm">
-                            <thead class="bg-rose-50 text-rose-700 text-xs uppercase">
-                                <tr>
-                                    <th class="px-4 py-2">Supplier</th>
-                                    <th class="px-4 py-2">Pending</th>
-                                    <th class="px-4 py-2">Note</th>
-                                    <th class="px-4 py-2">Pay (Tk)</th>
-                                    <th class="px-4 py-2 text-center">Pay</th>
-                                </tr>
-                            </thead>
-                            <tbody id="supplier-payments-body" class="divide-y divide-rose-100 text-gray-700 bg-white">
-                                <tr><td colspan="5" class="px-4 py-3 text-center text-gray-400">Loading...</td></tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-
-                <form id="add-due-form" class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8 bg-gray-50 p-4 rounded-xl border border-gray-200/60 items-end" onsubmit="event.preventDefault(); addDue();">
-                    <div>
-                        <label class="block text-xs font-medium text-gray-600 mb-1">Client / Party Name</label>
-                        <input type="text" id="due-client" placeholder="e.g. Rahim Store" required class="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-amber-500">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium text-gray-600 mb-1">Due Amount (Tk)</label>
-                        <input type="number" id="due-amount" placeholder="e.g. 1500" min="1" required class="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-amber-500">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium text-gray-600 mb-1">Details / Note</label>
-                        <input type="text" id="due-note" placeholder="Item/Remarks" class="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-amber-500">
-                    </div>
-                    <button type="submit" class="w-full bg-amber-600 text-white rounded-lg px-4 py-2 text-sm font-medium hover:bg-amber-700 transition-all"><i class="fa-solid fa-circle-plus mr-1"></i> Add Record</button>
-                </form>
-
-                <div class="bg-indigo-50/50 border border-indigo-100 p-5 rounded-xl mb-8">
-                    <h3 class="text-sm font-bold text-indigo-900 mb-3"><i class="fa-solid fa-cash-register mr-1"></i> POS / Add Due During Sale</h3>
-                    <form id="sell-due-form" class="grid grid-cols-1 md:grid-cols-5 gap-4 items-end" onsubmit="event.preventDefault(); processSaleWithDue();">
-                        <div class="md:col-span-2">
-                            <label class="block text-xs font-medium text-gray-700 mb-1">Item / Client Name</label>
-                            <input type="text" id="sell-client" placeholder="e.g. Y20 LCD or Shuvo Store" required class="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-medium text-gray-700 mb-1">Total Sale Amount (Tk)</label>
-                            <input type="number" id="sell-total" placeholder="e.g. 1500" min="1" required class="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-medium text-gray-700 mb-1">Paid Now (Cash In)</label>
-                            <input type="number" id="sell-paid" placeholder="e.g. 1000" min="0" required class="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500">
-                        </div>
-                        <button type="submit" class="w-full bg-indigo-600 text-white rounded-lg px-4 py-2 text-sm font-medium hover:bg-indigo-700 transition-all"><i class="fa-solid fa-right-left mr-1"></i> Complete & Add Due</button>
                     </form>
                 </div>
+            </div>
 
-                <div class="overflow-x-auto rounded-xl border border-gray-100">
-                    <table class="w-full text-left text-sm">
-                        <thead class="bg-gray-100 text-gray-600 text-xs uppercase">
-                            <tr>
-                                <th class="px-6 py-3">Client Name</th>
-                                <th class="px-6 py-3">Pending Due</th>
-                                <th class="px-6 py-3">Note</th>
-                                <th class="px-6 py-3">Collect (Tk)</th>
-                                <th class="px-6 py-3 text-center">Collect</th>
-                            </tr>
-                        </thead>
-                        <tbody id="dues-table-body" class="divide-y divide-gray-200 text-gray-700">
-                            <tr><td colspan="5" class="px-6 py-4 text-center text-gray-400">Loading...</td></tr>
-                        </tbody>
-                    </table>
+            <!-- Market Sale Tab -->
+            <div id="market-tab" class="tab-content hidden fade-in">
+                <div style="margin-bottom:24px;">
+                    <h1 class="page-title">Market Sale</h1>
+                    <p class="page-subtitle">Record sales to Market Shops / Technicians. Unpaid amount auto-creates due.</p>
+                </div>
+                <div class="glass-card" style="padding:32px;max-width:800px;">
+                    <p id="market-feedback" class="hidden" style="font-size:13px;font-weight:500;padding:10px 16px;border-radius:10px;margin-bottom:20px;"></p>
+                    <form id="market-form" onsubmit="event.preventDefault(); submitMarketSale();" style="display:flex;flex-direction:column;gap:20px;">
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+                            <div>
+                                <label style="display:block;font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;">Date</label>
+                                <input type="date" id="market-date" class="input-modern">
+                            </div>
+                            <div>
+                                <label style="display:block;font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;">Shop / Technician Name</label>
+                                <input type="text" id="market-client" placeholder="e.g. Rahim Store" required class="input-modern">
+                            </div>
+                        </div>
+                        <div style="border-top:1px solid var(--border);padding-top:20px;">
+                            <h3 style="font-size:12px;font-weight:700;color:var(--text);margin:0 0 16px;text-transform:uppercase;letter-spacing:0.05em;">Item Details</h3>
+                            <div style="display:grid;grid-template-columns:2fr 1fr;gap:12px;margin-bottom:12px;">
+                                <div>
+                                    <label style="display:block;font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;">Item / Description</label>
+                                    <input type="text" id="market-desc" placeholder="e.g. C61-LCD" class="input-modern" required>
+                                </div>
+                                <div>
+                                    <label style="display:block;font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;">Total Amount (Tk)</label>
+                                    <input type="number" id="market-amount" placeholder="0.00" step="0.01" min="1" class="input-modern" required oninput="calcMarketDue()">
+                                </div>
+                            </div>
+                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                                <div>
+                                    <label style="display:block;font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;">Notes</label>
+                                    <input type="text" id="market-notes" placeholder="Extra note" class="input-modern">
+                                </div>
+                                <div>
+                                    <label style="display:block;font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;">Paid Now (Cash In)</label>
+                                    <input type="number" id="market-paid" placeholder="0 if full due" step="0.01" min="0" class="input-modern" oninput="calcMarketDue()">
+                                </div>
+                            </div>
+                        </div>
+                        <div style="border-radius:14px;padding:20px;display:flex;justify-content:space-between;align-items:center;background:#F5F3FF;border:1px solid #DDD6FE;">
+                            <span style="font-size:13px;font-weight:600;color:#7C3AED;">Due Amount (auto-created):</span>
+                            <span style="font-size:24px;font-weight:800;color:#7C3AED;" id="market-due-display">Tk 0</span>
+                        </div>
+                        <div style="border-top:1px solid var(--border);padding-top:20px;display:flex;justify-content:flex-end;gap:12px;">
+                            <button type="reset" class="btn-secondary" onclick="document.getElementById('market-due-display').textContent='Tk 0'">Clear</button>
+                            <button type="submit" id="market-submit-btn" class="btn-primary"><i class="fa-solid fa-plus"></i> Save Market Sale</button>
+                        </div>
+                    </form>
                 </div>
             </div>
-        </div>
 
-    </main>
+            <!-- Reports Tab -->
+            <div id="report-tab" class="tab-content hidden fade-in" style="display:flex;flex-direction:column;gap:20px;">
+                <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px;">
+                    <div>
+                        <h1 class="page-title">Reports</h1>
+                        <p class="page-subtitle" id="report-date-label">Full financial summary for today.</p>
+                    </div>
+                    <div style="display:flex;gap:8px;">
+                        <button onclick="window.print()" class="btn-secondary" style="font-size:12px;"><i class="fa-solid fa-print"></i> Print</button>
+                        <button onclick="exportCSV()" class="btn-primary" style="font-size:12px;"><i class="fa-solid fa-file-excel"></i> Export CSV</button>
+                    </div>
+                </div>
+
+                <div class="glass-card" style="padding:16px;display:flex;gap:12px;align-items:center;">
+                    <label style="font-size:12px;font-weight:600;color:var(--text-muted);white-space:nowrap;">Select Date:</label>
+                    <input type="date" id="report-date-picker" class="input-modern" style="width:auto;">
+                    <button onclick="loadReport()" class="btn-primary" style="font-size:12px;padding:8px 16px;"><i class="fa-solid fa-rotate"></i> Load</button>
+                </div>
+
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+                    <div class="glass-card" style="padding:20px;">
+                        <div style="display:flex;align-items:center;justify-content:space-between;">
+                            <div>
+                                <span class="kpi-label">Walk-in Sales</span>
+                                <p style="font-size:24px;font-weight:800;color:#2563EB;margin:4px 0 0;" id="report-walkin-total">Tk 0</p>
+                            </div>
+                            <div class="stat-icon" style="background:#EFF6FF;"><i class="fa-solid fa-walking" style="color:#2563EB"></i></div>
+                        </div>
+                    </div>
+                    <div class="glass-card" style="padding:20px;">
+                        <div style="display:flex;align-items:center;justify-content:space-between;">
+                            <div>
+                                <span class="kpi-label">Market Sales</span>
+                                <p style="font-size:24px;font-weight:800;color:#7C3AED;margin:4px 0 0;" id="report-market-total">Tk 0</p>
+                            </div>
+                            <div class="stat-icon" style="background:#F5F3FF;"><i class="fa-solid fa-store" style="color:#7C3AED"></i></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="display:grid;grid-template-columns:2fr 1fr;gap:20px;">
+                    <div class="glass-card" style="overflow:hidden;">
+                        <div style="padding:16px 24px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
+                            <h3 style="font-size:13px;font-weight:700;color:var(--text);">Main Ledger Entries</h3>
+                            <span style="font-size:11px;font-weight:700;padding:4px 12px;border-radius:20px;background:#EFF6FF;color:#2563EB;" id="report-main-subtotal">Subtotal: Tk 0</span>
+                        </div>
+                        <div style="overflow-x:auto;max-height:400px;overflow-y:auto;">
+                            <table class="table-modern" style="width:100%;">
+                                <thead><tr><th>#</th><th>Description</th><th>Notes</th><th style="text-align:right;">Amount</th></tr></thead>
+                                <tbody id="report-main-body"><tr><td colspan="4" style="text-align:center;color:var(--text-muted);">No entries for this date.</td></tr></tbody>
+                                <tfoot style="font-weight:700;color:var(--text);"><tr><td colspan="3" style="text-align:right;">Total Ledger:</td><td style="text-align:right;color:#10B981;" id="report-main-total">Tk 0</td></tr></tfoot>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="glass-card" style="overflow:hidden;">
+                        <div style="padding:16px 24px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
+                            <h3 style="font-size:13px;font-weight:700;color:var(--text);">Cash Out</h3>
+                            <span style="font-size:11px;font-weight:700;padding:4px 12px;border-radius:20px;background:#FEF2F2;color:#EF4444;" id="report-cashout-total-label">Total: Tk 0</span>
+                        </div>
+                        <div style="overflow-x:auto;max-height:400px;overflow-y:auto;">
+                            <table class="table-modern" style="width:100%;">
+                                <thead><tr><th>Receiver</th><th style="text-align:right;">Amount</th></tr></thead>
+                                <tbody id="report-cashout-body"><tr><td colspan="2" style="text-align:center;color:var(--text-muted);">No cash out.</td></tr></tbody>
+                                <tfoot style="font-weight:700;color:var(--text);"><tr><td style="text-align:right;">Total Out:</td><td style="text-align:right;color:#EF4444;" id="report-cashout-total">Tk 0</td></tr></tfoot>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Summary Bar -->
+                <div style="border-radius:16px;padding:24px;background:linear-gradient(135deg,#1E3A5F,#0F172A);display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px;">
+                    <div>
+                        <h3 style="font-size:15px;font-weight:700;color:rgba(255,255,255,0.8);" id="report-summary-title">Daily Summary Report</h3>
+                        <p style="font-size:11px;color:rgba(255,255,255,0.4);margin-top:4px;">Opening Balance + Ledger In - Cash Paid Out</p>
+                    </div>
+                    <div style="display:flex;flex-wrap:wrap;align-items:center;gap:12px;padding:16px 24px;border-radius:14px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.06);">
+                        <div style="text-align:center;">
+                            <span style="font-size:10px;font-weight:500;color:rgba(255,255,255,0.5);display:block;">Opening</span>
+                            <span style="font-size:18px;font-weight:700;color:#fff;" id="report-summary-opening">Tk 0</span>
+                        </div>
+                        <span style="font-size:18px;font-weight:800;color:rgba(255,255,255,0.3);">+</span>
+                        <div style="text-align:center;">
+                            <span style="font-size:10px;font-weight:500;color:rgba(255,255,255,0.5);display:block;">Ledger In</span>
+                            <span style="font-size:18px;font-weight:700;color:#fff;" id="report-summary-ledger">Tk 0</span>
+                        </div>
+                        <span style="font-size:18px;font-weight:800;color:rgba(255,255,255,0.3);">-</span>
+                        <div style="text-align:center;">
+                            <span style="font-size:10px;font-weight:500;color:rgba(255,255,255,0.5);display:block;">Cash Out</span>
+                            <span style="font-size:18px;font-weight:700;color:#FCA5A5;" id="report-summary-cashout">Tk 0</span>
+                        </div>
+                        <div style="width:1px;height:32px;background:rgba(255,255,255,0.15);"></div>
+                        <div style="text-align:center;">
+                            <span style="font-size:10px;font-weight:500;color:rgba(255,255,255,0.5);display:block;">Net</span>
+                            <span style="font-size:22px;font-weight:900;color:#86EFAC;" id="report-summary-net">Tk 0</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dues Tab -->
+            <div id="dues-tab" class="tab-content hidden fade-in" style="display:flex;flex-direction:column;gap:20px;">
+                <div>
+                    <h1 class="page-title">Dues & Payments</h1>
+                    <p class="page-subtitle">Manage client credits and supplier payables</p>
+                </div>
+
+                <div class="glass-card" style="padding:24px;">
+                    <p id="dues-feedback" class="hidden" style="font-size:13px;font-weight:500;padding:10px 16px;border-radius:10px;margin-bottom:16px;"></p>
+
+                    <!-- Supplier Payment -->
+                    <div style="border-radius:14px;padding:20px;margin-bottom:24px;background:#FFF1F2;border:1px solid #FECDD3;">
+                        <h3 style="font-size:13px;font-weight:700;color:#BE123C;margin-bottom:16px;display:flex;align-items:center;gap:8px;"><i class="fa-solid fa-truck"></i> Supplier Payment</h3>
+                        <form id="add-supplier-payment-form" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:16px;align-items:end;" onsubmit="event.preventDefault(); addSupplierPayment();">
+                            <div>
+                                <label style="display:block;font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;">Supplier Name</label>
+                                <input type="text" id="sp-supplier" placeholder="e.g. Parts Vendor" required class="input-modern">
+                            </div>
+                            <div>
+                                <label style="display:block;font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;">Amount (Tk)</label>
+                                <input type="number" id="sp-amount" placeholder="e.g. 2000" min="1" required class="input-modern">
+                            </div>
+                            <div>
+                                <label style="display:block;font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;">Details / Note</label>
+                                <input type="text" id="sp-note" placeholder="Parts/Remarks" class="input-modern">
+                            </div>
+                            <button type="submit" class="btn-primary" style="background:#E11D48;box-shadow:0 2px 8px rgba(225,29,72,0.3);"><i class="fa-solid fa-circle-plus"></i> Add Payable</button>
+                        </form>
+                        <div style="overflow-x:auto;border-radius:12px;border:1px solid #FECDD3;max-height:300px;overflow-y:auto;">
+                            <table class="table-modern" style="width:100%;">
+                                <thead><tr><th>Supplier</th><th>Pending</th><th>Note</th><th>Pay (Tk)</th><th style="text-align:center;">Action</th></tr></thead>
+                                <tbody id="supplier-payments-body"><tr><td colspan="5" style="text-align:center;color:var(--text-muted);">Loading...</td></tr></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Add Due -->
+                    <form id="add-due-form" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:24px;padding:20px;border-radius:14px;background:var(--input-bg);border:1px solid var(--border);align-items:end;" onsubmit="event.preventDefault(); addDue();">
+                        <div>
+                            <label style="display:block;font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;">Client / Party Name</label>
+                            <input type="text" id="due-client" placeholder="e.g. Rahim Store" required class="input-modern">
+                        </div>
+                        <div>
+                            <label style="display:block;font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;">Due Amount (Tk)</label>
+                            <input type="number" id="due-amount" placeholder="e.g. 1500" min="1" required class="input-modern">
+                        </div>
+                        <div>
+                            <label style="display:block;font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;">Details / Note</label>
+                            <input type="text" id="due-note" placeholder="Item/Remarks" class="input-modern">
+                        </div>
+                        <button type="submit" class="btn-primary" style="background:#D97706;box-shadow:0 2px 8px rgba(217,119,6,0.3);"><i class="fa-solid fa-circle-plus"></i> Add Record</button>
+                    </form>
+
+                    <!-- POS -->
+                    <div style="border-radius:14px;padding:20px;margin-bottom:24px;background:#F5F3FF;border:1px solid #DDD6FE;">
+                        <h3 style="font-size:13px;font-weight:700;color:#5B21B6;margin-bottom:16px;display:flex;align-items:center;gap:8px;"><i class="fa-solid fa-cash-register"></i> POS / Add Due During Sale</h3>
+                        <form id="sell-due-form" style="display:grid;grid-template-columns:2fr 1fr 1fr auto;gap:12px;align-items:end;" onsubmit="event.preventDefault(); processSaleWithDue();">
+                            <div>
+                                <label style="display:block;font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;">Item / Client Name</label>
+                                <input type="text" id="sell-client" placeholder="e.g. Y20 LCD" required class="input-modern">
+                            </div>
+                            <div>
+                                <label style="display:block;font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;">Total Sale (Tk)</label>
+                                <input type="number" id="sell-total" placeholder="e.g. 1500" min="1" required class="input-modern">
+                            </div>
+                            <div>
+                                <label style="display:block;font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;">Paid Now (Tk)</label>
+                                <input type="number" id="sell-paid" placeholder="e.g. 1000" min="0" required class="input-modern">
+                            </div>
+                            <button type="submit" class="btn-primary"><i class="fa-solid fa-right-left"></i> Complete & Add Due</button>
+                        </form>
+                    </div>
+
+                    <!-- Client Dues Table -->
+                    <div style="overflow-x:auto;border-radius:12px;border:1px solid var(--border);max-height:400px;overflow-y:auto;">
+                        <table class="table-modern" style="width:100%;">
+                            <thead><tr><th>Client Name</th><th>Pending Due</th><th>Note</th><th>Collect (Tk)</th><th style="text-align:center;">Action</th></tr></thead>
+                            <tbody id="dues-table-body"><tr><td colspan="5" style="text-align:center;color:var(--text-muted);">Loading...</td></tr></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Backup Tab -->
+            <div id="backup-tab" class="tab-content hidden fade-in" style="display:flex;flex-direction:column;gap:20px;">
+                <div>
+                    <h1 class="page-title">Backup & Recovery</h1>
+                    <p class="page-subtitle">Auto-backup runs every 5 min (hourly) + daily at midnight</p>
+                </div>
+
+                <p id="backup-feedback" class="hidden" style="font-size:13px;font-weight:500;padding:10px 16px;border-radius:10px;"></p>
+
+                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:16px;">
+                    <div class="glass-card" style="padding:20px;">
+                        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+                            <h3 class="kpi-label">Database Health</h3>
+                            <div style="width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;background:#F0FDF4;"><i class="fa-solid fa-heartbeat" style="color:#10B981;font-size:16px;"></i></div>
+                        </div>
+                        <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" id="backup-health-status">Checking...</p>
+                        <div style="display:flex;justify-content:flex-end;"><button onclick="checkHealth()" class="btn-primary" style="font-size:12px;padding:7px 14px;"><i class="fa-solid fa-rotate"></i> Check</button></div>
+                    </div>
+                    <div class="glass-card" style="padding:20px;">
+                        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+                            <h3 class="kpi-label">Export Data</h3>
+                            <div style="width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;background:#F5F3FF;"><i class="fa-solid fa-download" style="color:#7C3AED;font-size:16px;"></i></div>
+                        </div>
+                        <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;">Download all data as JSON</p>
+                        <div style="display:flex;justify-content:flex-end;"><button onclick="exportJSON()" class="btn-primary" style="font-size:12px;padding:7px 14px;"><i class="fa-solid fa-file-export"></i> Export</button></div>
+                    </div>
+                    <div class="glass-card" style="padding:20px;">
+                        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+                            <h3 class="kpi-label">Import Data</h3>
+                            <div style="width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;background:#FFFBEB;"><i class="fa-solid fa-file-import" style="color:#F59E0B;font-size:16px;"></i></div>
+                        </div>
+                        <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;">Restore from JSON export</p>
+                        <div style="display:flex;justify-content:flex-end;">
+                            <label class="btn-primary" style="font-size:12px;padding:7px 14px;cursor:pointer;"><i class="fa-solid fa-file-import"></i> Import</label>
+                            <input type="file" id="import-file-input" accept=".json" class="hidden" onchange="importJSON(this.files[0])">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass-card" style="padding:16px 24px;display:flex;align-items:center;justify-content:space-between;">
+                    <div>
+                        <h3 style="font-size:13px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:8px;"><i class="fa-solid fa-camera" style="color:var(--text-muted);"></i> Manual Backup</h3>
+                        <p style="font-size:12px;color:var(--text-muted);margin:4px 0 0;">Creates an instant snapshot</p>
+                    </div>
+                    <button onclick="createBackup()" class="btn-primary"><i class="fa-solid fa-database"></i> Create Backup Now</button>
+                </div>
+
+                <div class="glass-card" style="overflow:hidden;">
+                    <div style="padding:16px 24px;border-bottom:1px solid var(--border);">
+                        <h3 style="font-size:13px;font-weight:700;color:var(--text);">Available Backups</h3>
+                    </div>
+                    <div style="overflow-x:auto;max-height:350px;overflow-y:auto;">
+                        <table class="table-modern" style="width:100%;">
+                            <thead><tr><th>Backup Name</th><th>Size</th><th>Date</th><th style="text-align:center;">Action</th></tr></thead>
+                            <tbody id="backup-list-body"><tr><td colspan="4" style="text-align:center;color:var(--text-muted);">Loading...</td></tr></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Users Tab -->
+            <div id="users-tab" class="tab-content hidden fade-in" style="display:flex;flex-direction:column;gap:20px;">
+                <div style="display:flex;align-items:center;justify-content:space-between;">
+                    <div>
+                        <h1 class="page-title">Manage Users</h1>
+                        <p class="page-subtitle">Create staff accounts and set permissions</p>
+                    </div>
+                    <button onclick="showCreateUser()" class="btn-primary"><i class="fa-solid fa-user-plus"></i> Add Staff</button>
+                </div>
+
+                <div id="user-form-card" class="glass-card hidden" style="padding:24px;">
+                    <h3 style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:16px;" id="user-form-title">Create Staff Account</h3>
+                    <p id="user-feedback" class="hidden" style="font-size:13px;font-weight:500;padding:10px 16px;border-radius:10px;margin-bottom:16px;"></p>
+                    <form id="user-form" onsubmit="event.preventDefault(); saveUser();" style="display:flex;flex-direction:column;gap:16px;">
+                        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;">
+                            <div>
+                                <label style="display:block;font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;">Username</label>
+                                <input type="text" id="uf-username" class="input-modern" placeholder="login name" required>
+                            </div>
+                            <div>
+                                <label style="display:block;font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;">Display Name</label>
+                                <input type="text" id="uf-display" class="input-modern" placeholder="e.g. Rahim">
+                            </div>
+                            <div>
+                                <label style="display:block;font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;">Password</label>
+                                <input type="password" id="uf-password" class="input-modern" placeholder="min 4 chars">
+                            </div>
+                        </div>
+                        <div>
+                            <label style="display:block;font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:12px;">Permissions</label>
+                            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px;" id="uf-permissions">
+                                <label style="display:flex;align-items:center;gap:8px;padding:10px 14px;border-radius:10px;border:1px solid var(--border);cursor:pointer;transition:all 0.2s;font-size:13px;color:var(--text);">
+                                    <input type="checkbox" value="add_sale" class="perm-cb" style="accent-color:var(--primary);width:16px;height:16px;" checked> Add Sale
+                                </label>
+                                <label style="display:flex;align-items:center;gap:8px;padding:10px 14px;border-radius:10px;border:1px solid var(--border);cursor:pointer;transition:all 0.2s;font-size:13px;color:var(--text);">
+                                    <input type="checkbox" value="add_due" class="perm-cb" style="accent-color:var(--primary);width:16px;height:16px;" checked> Add Due
+                                </label>
+                                <label style="display:flex;align-items:center;gap:8px;padding:10px 14px;border-radius:10px;border:1px solid var(--border);cursor:pointer;transition:all 0.2s;font-size:13px;color:var(--text);">
+                                    <input type="checkbox" value="collect_due" class="perm-cb" style="accent-color:var(--primary);width:16px;height:16px;" checked> Collect Due
+                                </label>
+                                <label style="display:flex;align-items:center;gap:8px;padding:10px 14px;border-radius:10px;border:1px solid var(--border);cursor:pointer;transition:all 0.2s;font-size:13px;color:var(--text);">
+                                    <input type="checkbox" value="view_report" class="perm-cb" style="accent-color:var(--primary);width:16px;height:16px;" checked> View Report
+                                </label>
+                                <label style="display:flex;align-items:center;gap:8px;padding:10px 14px;border-radius:10px;border:1px solid var(--border);cursor:pointer;transition:all 0.2s;font-size:13px;color:var(--text);">
+                                    <input type="checkbox" value="search_customer" class="perm-cb" style="accent-color:var(--primary);width:16px;height:16px;" checked> Search Customer
+                                </label>
+                                <label style="display:flex;align-items:center;gap:8px;padding:10px 14px;border-radius:10px;border:1px solid var(--border);cursor:pointer;transition:all 0.2s;font-size:13px;color:var(--text);">
+                                    <input type="checkbox" value="view_dashboard" class="perm-cb" style="accent-color:var(--primary);width:16px;height:16px;" checked> View Dashboard
+                                </label>
+                                <label style="display:flex;align-items:center;gap:8px;padding:10px 14px;border-radius:10px;border:1px solid var(--border);cursor:pointer;transition:all 0.2s;font-size:13px;color:var(--text);">
+                                    <input type="checkbox" value="backup_recovery" class="perm-cb" style="accent-color:var(--primary);width:16px;height:16px;"> Backup & Recovery
+                                </label>
+                                <label style="display:flex;align-items:center;gap:8px;padding:10px 14px;border-radius:10px;border:1px solid var(--border);cursor:pointer;transition:all 0.2s;font-size:13px;color:var(--text);">
+                                    <input type="checkbox" value="delete_entries" class="perm-cb" style="accent-color:var(--primary);width:16px;height:16px;"> Delete Entries
+                                </label>
+                                <label style="display:flex;align-items:center;gap:8px;padding:10px 14px;border-radius:10px;border:1px solid var(--border);cursor:pointer;transition:all 0.2s;font-size:13px;color:var(--text);">
+                                    <input type="checkbox" value="change_settings" class="perm-cb" style="accent-color:var(--primary);width:16px;height:16px;"> Change Settings
+                                </label>
+                                <label style="display:flex;align-items:center;gap:8px;padding:10px 14px;border-radius:10px;border:1px solid var(--border);cursor:pointer;transition:all 0.2s;font-size:13px;color:var(--text);">
+                                    <input type="checkbox" value="view_profit" class="perm-cb" style="accent-color:var(--primary);width:16px;height:16px;"> View Profit
+                                </label>
+                                <label style="display:flex;align-items:center;gap:8px;padding:10px 14px;border-radius:10px;border:1px solid var(--border);cursor:pointer;transition:all 0.2s;font-size:13px;color:var(--text);">
+                                    <input type="checkbox" value="manage_users" class="perm-cb" style="accent-color:var(--primary);width:16px;height:16px;"> Manage Users
+                                </label>
+                            </div>
+                        </div>
+                        <div style="display:flex;justify-content:flex-end;gap:12px;">
+                            <button type="button" class="btn-secondary" onclick="hideUserForm()">Cancel</button>
+                            <button type="submit" id="uf-submit-btn" class="btn-primary"><i class="fa-solid fa-check"></i> Save</button>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="glass-card" style="overflow:hidden;">
+                    <div style="overflow-x:auto;">
+                        <table class="table-modern" style="width:100%;">
+                            <thead><tr><th>User</th><th>Role</th><th>Permissions</th><th style="text-align:center;">Actions</th></tr></thead>
+                            <tbody id="users-table-body"><tr><td colspan="4" style="text-align:center;color:var(--text-muted);">Loading...</td></tr></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
 
     <script>
-        // ─── Auth State ─────────────────────────────────────────────
         let token = localStorage.getItem('token');
         let currentUser = null;
+        let userPermissions = [];
         let topItemsChart = null;
         let cashDistChart = null;
 
-        document.getElementById('header-date').textContent = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: '2-digit' }).replace(/\//g, '-');
+        // Dark mode init
+        if (localStorage.getItem('dark') === '1') {
+            document.body.classList.add('dark');
+            document.getElementById('dark-toggle').classList.add('on');
+        }
+
+        function toggleDark() {
+            document.body.classList.toggle('dark');
+            const on = document.body.classList.contains('dark');
+            document.getElementById('dark-toggle').classList.toggle('on', on);
+            localStorage.setItem('dark', on ? '1' : '0');
+            if (topItemsChart) { topItemsChart.update(); }
+            if (cashDistChart) { cashDistChart.update(); }
+            loadDashboard();
+        }
+
+        function hasPermission(perm) {
+            if (currentUser && currentUser.role === 'admin') return true;
+            return userPermissions.includes(perm);
+        }
+
+        document.getElementById('sidebar-date').textContent = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: '2-digit' }).replace(/\//g, '-');
 
         if (token) {
             document.getElementById('login-overlay').classList.remove('active');
@@ -435,7 +882,6 @@
             const username = document.getElementById('login-username').value.trim();
             const password = document.getElementById('login-password').value.trim();
             const errEl = document.getElementById('login-error');
-
             if (!username || !password) { errEl.textContent = 'Please fill in both fields.'; errEl.classList.remove('hidden'); return; }
 
             fetch('/api/auth/login', {
@@ -448,12 +894,14 @@
             }).then(data => {
                 token = data.token;
                 currentUser = data.user;
+                userPermissions = data.user.permissions || [];
                 localStorage.setItem('token', token);
                 document.getElementById('login-overlay').classList.remove('active');
-                document.getElementById('header-user').textContent = data.user.display_name || data.user.username;
+                document.getElementById('sidebar-user').textContent = data.user.display_name || data.user.username;
+                document.getElementById('sidebar-role').textContent = data.user.role === 'admin' ? 'Administrator' : 'Staff';
                 initApp();
             }).catch(err => {
-                errEl.textContent = err.message || 'Connection error. Is the server running?';
+                errEl.textContent = err.message || 'Connection error.';
                 errEl.classList.remove('hidden');
             });
         }
@@ -470,111 +918,147 @@
         function loadUser() {
             api('/auth/me').then(user => {
                 currentUser = user;
-                document.getElementById('header-user').textContent = user.display_name || user.username;
+                userPermissions = user.permissions || [];
+                document.getElementById('sidebar-user').textContent = user.display_name || user.username;
+                document.getElementById('sidebar-role').textContent = user.role === 'admin' ? 'Administrator' : 'Staff';
                 initApp();
             }).catch(() => logout());
         }
 
         function showFeedback(el, msg, type) {
             el.textContent = msg;
-            el.className = 'text-sm font-medium px-4 py-3 rounded-lg mb-4 block ' +
-                (type === 'success' ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700');
+            el.className = 'block';
+            Object.assign(el.style, {
+                fontSize:'13px',fontWeight:'500',padding:'10px 16px',borderRadius:'10px',marginBottom:'16px',
+                background: type === 'success' ? '#F0FDF4' : '#FEF2F2',
+                color: type === 'success' ? '#10B981' : '#EF4444'
+            });
         }
 
-        // ─── Tab Switching ──────────────────────────────────────────
         function switchTab(tabId, el) {
             document.querySelectorAll('.tab-content').forEach(t => { t.classList.remove('active'); t.classList.add('hidden'); });
             const target = document.getElementById(tabId);
-            if (target) { target.classList.add('active'); target.classList.remove('hidden'); }
-
-            document.querySelectorAll('nav a').forEach(l => l.classList.remove('bg-indigo-800'));
-            if (el) el.classList.add('bg-indigo-800');
-
+            if (target) { target.classList.add('active'); target.classList.remove('hidden'); target.style.display = tabId === 'dashboard-tab' || tabId === 'report-tab' || tabId === 'dues-tab' ? 'flex' : 'block'; }
+            document.querySelectorAll('.sidebar-link').forEach(l => l.classList.remove('active'));
+            if (el) el.classList.add('active');
+            closeSidebar();
             if (tabId === 'dashboard-tab') loadDashboard();
             if (tabId === 'entry-tab') loadEntryForm();
+            if (tabId === 'market-tab') loadMarketForm();
             if (tabId === 'report-tab') loadReport();
             if (tabId === 'dues-tab') { loadDues(); loadSupplierPayments(); }
+            if (tabId === 'backup-tab') { checkHealth(); loadBackups(); }
+            if (tabId === 'users-tab') loadUsers();
         }
 
-        // ─── Init ───────────────────────────────────────────────────
         function initApp() {
+            applyPermissions();
             loadDashboard();
             loadEntryForm();
+            loadMarketForm();
             loadReport();
             loadDues();
             loadSupplierPayments();
         }
 
-        // ─── Dashboard ──────────────────────────────────────────────
+        function applyPermissions() {
+            const isAdmin = currentUser && currentUser.role === 'admin';
+            document.getElementById('nav-users').style.display = isAdmin ? 'flex' : 'none';
+            const backupLink = document.querySelector('[onclick*="backup-tab"]');
+            if (backupLink) backupLink.style.display = hasPermission('backup_recovery') || isAdmin ? 'flex' : 'none';
+            if (!hasPermission('view_dashboard') && !isAdmin) {
+                switchTab('entry-tab', null);
+                const dashLink = document.querySelector('[onclick*="dashboard-tab"]');
+                if (dashLink) dashLink.style.display = 'none';
+            }
+            if (!hasPermission('view_report') && !isAdmin) {
+                const rptLink = document.querySelector('[onclick*="report-tab"]');
+                if (rptLink) rptLink.style.display = 'none';
+            }
+            if (!hasPermission('add_sale') && !isAdmin) {
+                const entryLink = document.querySelector('[onclick*="entry-tab"]');
+                const marketLink = document.querySelector('[onclick*="market-tab"]');
+                if (entryLink) entryLink.style.display = 'none';
+                if (marketLink) marketLink.style.display = 'none';
+            }
+        }
+
+        // ─── Dashboard ──────────────────────────────────────
         function loadDashboard() {
             api('/dashboard/summary').then(data => {
-                document.getElementById('dash-opening').textContent = 'Tk ' + data.openingBalance.toLocaleString();
-                document.getElementById('dash-main-ledger').textContent = 'Tk ' + data.mainLedgerTotal.toLocaleString();
-                document.getElementById('dash-cash-out').textContent = 'Tk ' + data.cashOutTotal.toLocaleString();
-                document.getElementById('dash-net-ledger').textContent = 'Tk ' + data.netLedgerTotal.toLocaleString();
-                document.getElementById('dash-total-dues').textContent = 'Tk ' + data.totalDues.toLocaleString();
-                document.getElementById('dash-total-collected').textContent = 'Tk ' + data.totalCollectedToday.toLocaleString();
-            });
+                document.getElementById('dash-opening').textContent = 'Tk ' + (data.openingBalance||0).toLocaleString();
+                document.getElementById('dash-main-ledger').textContent = 'Tk ' + (data.mainLedgerTotal||0).toLocaleString();
+                document.getElementById('dash-cash-out').textContent = 'Tk ' + (data.cashOutTotal||0).toLocaleString();
+                document.getElementById('dash-net-ledger').textContent = 'Tk ' + (data.netLedgerTotal||0).toLocaleString();
+                document.getElementById('dash-total-dues').textContent = 'Tk ' + (data.totalDues||0).toLocaleString();
+                document.getElementById('dash-total-collected').textContent = 'Tk ' + (data.totalCollectedToday||0).toLocaleString();
+            }).catch(() => {});
 
             api('/dashboard/charts').then(data => {
                 const topLabels = data.topItems.map(i => i.description);
                 const topValues = data.topItems.map(i => i.total);
                 const cashLabels = data.cashOutByPerson.map(i => i.description);
                 const cashValues = data.cashOutByPerson.map(i => i.total);
+                const colors = ['#2563EB','#3B82F6','#06B6D4','#10B981','#F59E0B','#EF4444'];
+                const gridColor = document.body.classList.contains('dark') ? '#334155' : '#E2E8F0';
+                const textColor = document.body.classList.contains('dark') ? '#94A3B8' : '#64748B';
 
-                const colors = ['#f43f5e', '#a855f7', '#06b6d4', '#10b981', '#f59e0b', '#6366f1'];
+                const topCtx = document.getElementById('topItemsChart').getContext('2d');
+                if (topItemsChart) topItemsChart.destroy();
+                topItemsChart = new Chart(topCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: topLabels.length ? topLabels : ['No data'],
+                        datasets: [{ label: 'Amount (Tk)', data: topValues.length ? topValues : [0], backgroundColor: topLabels.map((_,i) => colors[i % colors.length]), borderRadius: 8, barThickness: 40 }]
+                    },
+                    options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { color: gridColor }, ticks: { color: textColor } }, x: { grid: { display: false }, ticks: { color: textColor } } } }
+                });
 
-                if (topItemsChart) {
-                    topItemsChart.data.labels = topLabels.length ? topLabels : ['No data'];
-                    topItemsChart.data.datasets[0].data = topValues.length ? topValues : [0];
-                    topItemsChart.update();
-                } else {
-                    const ctxTop = document.getElementById('topItemsChart').getContext('2d');
-                    topItemsChart = new Chart(ctxTop, {
-                        type: 'bar',
-                        data: {
-                            labels: topLabels.length ? topLabels : ['No data'],
-                            datasets: [{
-                                label: 'Amount in Tk',
-                                data: topValues.length ? topValues : [0],
-                                backgroundColor: 'rgba(99, 102, 241, 0.85)',
-                                borderColor: 'rgb(99, 102, 241)',
-                                borderWidth: 1,
-                                borderRadius: 6
-                            }]
-                        },
-                        options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
-                    });
+                const cashCtx = document.getElementById('cashDistributionChart').getContext('2d');
+                if (cashDistChart) cashDistChart.destroy();
+                cashDistChart = new Chart(cashCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: cashLabels.length ? cashLabels : ['No data'],
+                        datasets: [{ data: cashValues.length ? cashValues : [1], backgroundColor: colors.slice(0, Math.max(cashLabels.length, 1)), borderWidth: 0, hoverOffset: 8 }]
+                    },
+                    options: { responsive: true, cutout: '65%', plugins: { legend: { position: 'right', labels: { padding: 16, usePointStyle: true, color: textColor } } } }
+                });
+            }).catch(() => {});
+
+            // Activity feed
+            api('/activity').then(items => {
+                const feed = document.getElementById('activity-feed');
+                if (!items || items.length === 0) {
+                    feed.innerHTML = '<div style="padding:24px;text-align:center;color:var(--text-muted);font-size:13px;">No recent activity</div>';
+                    return;
                 }
-
-                if (cashDistChart) {
-                    cashDistChart.data.labels = cashLabels.length ? cashLabels : ['No data'];
-                    cashDistChart.data.datasets[0].data = cashValues.length ? cashValues : [1];
-                    cashDistChart.data.datasets[0].backgroundColor = colors.slice(0, Math.max(cashLabels.length, 1));
-                    cashDistChart.update();
-                } else {
-                    const ctxCash = document.getElementById('cashDistributionChart').getContext('2d');
-                    cashDistChart = new Chart(ctxCash, {
-                        type: 'doughnut',
-                        data: {
-                            labels: cashLabels.length ? cashLabels : ['No data'],
-                            datasets: [{
-                                data: cashValues.length ? cashValues : [1],
-                                backgroundColor: colors.slice(0, Math.max(cashLabels.length, 1))
-                            }]
-                        },
-                        options: { responsive: true, plugins: { legend: { position: 'right' } } }
-                    });
-                }
+                feed.innerHTML = items.slice(0, 15).map((a,i) => {
+                    const icons = { entry_added:'fa-circle-plus text-blue-500', due_added:'fa-exclamation-circle text-amber-500', due_collected:'fa-money-bill-wave text-green-500', supplier_added:'fa-truck text-red-500', supplier_paid:'fa-check-circle text-green-500', login:'fa-right-to-bracket text-purple-500' };
+                    const icon = icons[a.action] || 'fa-circle text-gray-400';
+                    const dt = a.created_at ? new Date(a.created_at) : new Date();
+                    const time = dt.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+                    const date = dt.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
+                    return `<div style="display:flex;align-items:center;gap:12px;padding:8px 0;${i>0?'border-top:1px solid var(--border);padding-top:12px;':''}">
+                        <div class="timeline-dot" style="background:${a.action==='entry_added'?'#3B82F6':a.action==='due_added'?'#F59E0B':a.action==='due_collected'?'#10B981':a.action==='supplier_added'?'#EF4444':a.action==='supplier_paid'?'#10B981':'#8B5CF6'};"></div>
+                        <div style="flex:1;font-size:13px;color:var(--text);">${escapeHtml(a.message)}</div>
+                        <div style="font-size:11px;color:var(--text-muted);text-align:right;">
+                            <div>${time}</div>
+                            <div>${date}</div>
+                        </div>
+                    </div>`;
+                }).join('');
+            }).catch(() => {
+                document.getElementById('activity-feed').innerHTML = '<div style="padding:24px;text-align:center;color:var(--text-muted);font-size:13px;">Could not load activity</div>';
             });
         }
 
-        // ─── Entry Form ────────────────────────────────────────────
+        // ─── Entry Form ─────────────────────────────────────
         function loadEntryForm() {
             document.getElementById('entry-date').value = new Date().toISOString().slice(0, 10);
             api('/settings').then(s => {
                 document.getElementById('entry-opening').value = 'Tk ' + (parseFloat(s.opening_balance) || 0).toLocaleString();
-            });
+            }).catch(() => {});
         }
 
         function submitEntry() {
@@ -587,30 +1071,57 @@
                 amount: parseFloat(document.getElementById('entry-amount').value),
                 entry_type: document.getElementById('entry-type').value
             };
-
-            if (!data.description || !data.amount) {
-                showFeedback(fb, 'Please fill in description and amount.', 'error');
-                return;
-            }
-
+            if (!data.description || !data.amount) { showFeedback(fb, 'Please fill in description and amount.', 'error'); return; }
             btn.disabled = true;
-            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i>Saving...';
-
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving...';
             api('/entries', { method: 'POST', body: JSON.stringify(data) }).then(() => {
                 showFeedback(fb, 'Entry saved successfully!', 'success');
                 document.getElementById('entry-form').reset();
                 loadEntryForm();
-            }).catch(err => {
-                showFeedback(fb, err.message, 'error');
-                document.getElementById('entry-form').reset();
-                loadEntryForm();
-            }).finally(() => {
-                btn.disabled = false;
-                btn.innerHTML = '<i class="fa-solid fa-plus mr-2"></i>Save Entry';
+            }).catch(err => { showFeedback(fb, err.message, 'error'); }).finally(() => {
+                btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-plus"></i> Save Entry';
             });
         }
 
-        // ─── Reports ───────────────────────────────────────────────
+        // ─── Market Sale ────────────────────────────────────
+        function loadMarketForm() {
+            document.getElementById('market-date').value = new Date().toISOString().slice(0, 10);
+            document.getElementById('market-due-display').textContent = 'Tk 0';
+        }
+
+        function calcMarketDue() {
+            const total = parseFloat(document.getElementById('market-amount').value) || 0;
+            const paid = parseFloat(document.getElementById('market-paid').value) || 0;
+            const due = Math.max(0, total - paid);
+            const el = document.getElementById('market-due-display');
+            el.textContent = 'Tk ' + due.toLocaleString();
+            el.style.color = due > 0 ? '#D97706' : '#7C3AED';
+        }
+
+        function submitMarketSale() {
+            const btn = document.getElementById('market-submit-btn');
+            const fb = document.getElementById('market-feedback');
+            const data = {
+                entry_date: document.getElementById('market-date').value,
+                client_name: document.getElementById('market-client').value.trim(),
+                description: document.getElementById('market-desc').value.trim(),
+                notes: document.getElementById('market-notes').value.trim(),
+                amount: parseFloat(document.getElementById('market-amount').value),
+                paid_now: parseFloat(document.getElementById('market-paid').value) || 0
+            };
+            if (!data.client_name || !data.description || !data.amount) { showFeedback(fb, 'Please fill in shop name, description and amount.', 'error'); return; }
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving...';
+            api('/market-sale', { method: 'POST', body: JSON.stringify(data) }).then(r => {
+                showFeedback(fb, r.message, 'success');
+                document.getElementById('market-form').reset();
+                loadMarketForm();
+            }).catch(err => { showFeedback(fb, err.message, 'error'); }).finally(() => {
+                btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-plus"></i> Save Market Sale';
+            });
+        }
+
+        // ─── Reports ────────────────────────────────────────
         function loadReport() {
             const picker = document.getElementById('report-date-picker');
             if (!picker.value) picker.value = new Date().toISOString().slice(0, 10);
@@ -619,78 +1130,51 @@
 
         function loadReportForDate(date) {
             const options = { year: 'numeric', month: '2-digit', day: '2-digit' };
-            document.getElementById('report-date-label').textContent =
-                'Full financial summary for date: ' + new Date(date + 'T00:00:00').toLocaleDateString('en-GB', options);
-
+            document.getElementById('report-date-label').textContent = 'Full financial summary for: ' + new Date(date + 'T00:00:00').toLocaleDateString('en-GB', options);
             api('/reports/daily?date=' + date).then(r => {
-                // Main entries
                 const mainBody = document.getElementById('report-main-body');
                 if (r.mainEntries.length === 0) {
-                    mainBody.innerHTML = '<tr><td colspan="4" class="px-6 py-4 text-center text-gray-400">No entries for this date.</td></tr>';
+                    mainBody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--text-muted);">No entries.</td></tr>';
                 } else {
                     mainBody.innerHTML = r.mainEntries.map((e, i) =>
-                        `<tr class="hover:bg-gray-50/50">
-                            <td class="px-6 py-4 font-medium">${i + 1}</td>
-                            <td class="px-6 py-4">${escapeHtml(e.description)}</td>
-                            <td class="px-6 py-4">${escapeHtml(e.notes) || '-'}</td>
-                            <td class="px-6 py-4 text-right font-medium">${e.amount.toLocaleString()}</td>
-                        </tr>`
+                        `<tr><td style="font-weight:600;">${i+1}</td><td>${escapeHtml(e.description)}</td><td style="color:var(--text-muted);">${escapeHtml(e.notes)||'-'}</td><td style="text-align:right;font-weight:600;">${e.amount.toLocaleString()}</td></tr>`
                     ).join('');
                 }
-                document.getElementById('report-main-subtotal').textContent = 'Subtotal: Tk ' + r.mainTotal.toLocaleString();
-                document.getElementById('report-main-total').textContent = 'Tk ' + r.mainTotal.toLocaleString();
+                document.getElementById('report-main-subtotal').textContent = 'Subtotal: Tk ' + (r.mainTotal||0).toLocaleString();
+                document.getElementById('report-main-total').textContent = 'Tk ' + (r.mainTotal||0).toLocaleString();
 
-                // Cash out entries
                 const cashBody = document.getElementById('report-cashout-body');
                 if (r.cashOutEntries.length === 0) {
-                    cashBody.innerHTML = '<tr><td colspan="2" class="px-6 py-4 text-center text-gray-400">No cash out for this date.</td></tr>';
+                    cashBody.innerHTML = '<tr><td colspan="2" style="text-align:center;color:var(--text-muted);">No cash out.</td></tr>';
                 } else {
                     cashBody.innerHTML = r.cashOutEntries.map(e =>
-                        `<tr class="hover:bg-gray-50/50">
-                            <td class="px-6 py-4">${escapeHtml(e.description)}</td>
-                            <td class="px-6 py-4 text-right font-medium">${e.amount.toLocaleString()}</td>
-                        </tr>`
+                        `<tr><td>${escapeHtml(e.description)}</td><td style="text-align:right;font-weight:600;">${e.amount.toLocaleString()}</td></tr>`
                     ).join('');
                 }
-                document.getElementById('report-cashout-total-label').textContent = 'Total: Tk ' + r.cashOutTotal.toLocaleString();
-                document.getElementById('report-cashout-total').textContent = 'Tk ' + r.cashOutTotal.toLocaleString();
+                document.getElementById('report-cashout-total-label').textContent = 'Total: Tk ' + (r.cashOutTotal||0).toLocaleString();
+                document.getElementById('report-cashout-total').textContent = 'Tk ' + (r.cashOutTotal||0).toLocaleString();
 
-                // Summary
-                document.getElementById('report-summary-title').textContent =
-                    'Daily Summary Report (' + new Date(date + 'T00:00:00').toLocaleDateString('en-GB', options) + ' - To ' + r.netTotal + ')';
-                document.getElementById('report-summary-opening').textContent = 'Tk ' + r.openingBalance.toLocaleString();
-                document.getElementById('report-summary-ledger').textContent = 'Tk ' + r.mainTotal.toLocaleString();
-                document.getElementById('report-summary-cashout').textContent = 'Tk ' + r.cashOutTotal.toLocaleString();
-                document.getElementById('report-summary-net').textContent = 'Tk ' + r.netTotal.toLocaleString();
-            });
+                document.getElementById('report-summary-title').textContent = 'Daily Summary (' + new Date(date + 'T00:00:00').toLocaleDateString('en-GB', options) + ')';
+                document.getElementById('report-summary-opening').textContent = 'Tk ' + (r.openingBalance||0).toLocaleString();
+                document.getElementById('report-summary-ledger').textContent = 'Tk ' + (r.mainTotal||0).toLocaleString();
+                document.getElementById('report-summary-cashout').textContent = 'Tk ' + (r.cashOutTotal||0).toLocaleString();
+                document.getElementById('report-summary-net').textContent = 'Tk ' + (r.netTotal||0).toLocaleString();
+                document.getElementById('report-walkin-total').textContent = 'Tk ' + (r.walkinTotal||0).toLocaleString();
+                document.getElementById('report-market-total').textContent = 'Tk ' + (r.marketTotal||0).toLocaleString();
+            }).catch(() => {});
         }
 
-        document.getElementById('report-date-picker').addEventListener('change', function() {
-            loadReportForDate(this.value);
-        });
+        document.getElementById('report-date-picker').addEventListener('change', function() { loadReportForDate(this.value); });
 
-        // ─── Supplier Payments ─────────────────────────────────────
+        // ─── Supplier Payments ──────────────────────────────
         function loadSupplierPayments() {
             api('/supplier-payments').then(payments => {
                 const tbody = document.getElementById('supplier-payments-body');
-                if (payments.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="5" class="px-4 py-3 text-center text-gray-400">No supplier payments recorded.</td></tr>';
-                    return;
-                }
+                if (payments.length === 0) { tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-muted);">No supplier payments.</td></tr>'; return; }
                 tbody.innerHTML = payments.map(p =>
-                    `<tr class="hover:bg-rose-50/50">
-                        <td class="px-4 py-3 font-semibold text-gray-800">${escapeHtml(p.supplier_name)}</td>
-                        <td class="px-4 py-3 text-rose-600 font-bold">Tk ${p.pending.toLocaleString()}</td>
-                        <td class="px-4 py-3 text-gray-500 text-xs">${escapeHtml(p.note) || '-'}</td>
-                        <td class="px-4 py-3">
-                            <input type="number" id="pay-input-${p.id}" placeholder="Amt" min="1" max="${p.pending}" class="w-28 border border-gray-200 rounded-lg px-3 py-1.5 text-sm outline-none focus:ring-2 focus:ring-rose-500">
-                        </td>
-                        <td class="px-4 py-3 text-center">
-                            <button onclick="paySupplier(${p.id})" class="bg-rose-600 hover:bg-rose-700 text-white text-xs px-4 py-2 rounded-lg font-medium transition-all"><i class="fa-solid fa-money-bill-wave mr-1"></i> Pay</button>
-                        </td>
-                    </tr>`
+                    `<tr><td style="font-weight:600;">${escapeHtml(p.supplier_name)}</td><td style="color:#E11D48;font-weight:700;">Tk ${p.pending.toLocaleString()}</td><td style="color:var(--text-muted);font-size:12px;">${escapeHtml(p.note)||'-'}</td><td><input type="number" id="pay-input-${p.id}" placeholder="Amt" min="1" max="${p.pending}" class="input-modern" style="width:120px;padding:8px 12px;"></td><td style="text-align:center;"><button onclick="paySupplier(${p.id})" style="background:#E11D48;color:#fff;border:none;border-radius:8px;padding:7px 14px;font-size:11px;font-weight:600;cursor:pointer;"><i class="fa-solid fa-money-bill-wave"></i> Pay</button></td></tr>`
                 ).join('');
-            });
+            }).catch(() => {});
         }
 
         function addSupplierPayment() {
@@ -698,11 +1182,9 @@
             const supplier_name = document.getElementById('sp-supplier').value.trim();
             const amount = parseFloat(document.getElementById('sp-amount').value);
             const note = document.getElementById('sp-note').value.trim();
-
             if (!supplier_name || !amount) { showFeedback(fb, 'Supplier name and amount required.', 'error'); return; }
-
             api('/supplier-payments', { method: 'POST', body: JSON.stringify({ supplier_name, amount, note }) }).then(() => {
-                showFeedback(fb, 'Supplier payable added successfully!', 'success');
+                showFeedback(fb, 'Supplier payable added!', 'success');
                 document.getElementById('add-supplier-payment-form').reset();
                 loadSupplierPayments();
             }).catch(err => showFeedback(fb, err.message, 'error'));
@@ -712,38 +1194,23 @@
             const fb = document.getElementById('dues-feedback');
             const input = document.getElementById('pay-input-' + id);
             const amount = parseFloat(input.value);
-
-            if (!amount || amount <= 0) { showFeedback(fb, 'Enter a valid amount to pay.', 'error'); return; }
-
+            if (!amount || amount <= 0) { showFeedback(fb, 'Enter a valid amount.', 'error'); return; }
             api('/supplier-payments/' + id + '/pay', { method: 'POST', body: JSON.stringify({ amount }) }).then(() => {
-                showFeedback(fb, 'Payment recorded successfully!', 'success');
+                showFeedback(fb, 'Payment recorded!', 'success');
                 input.value = '';
                 loadSupplierPayments();
             }).catch(err => showFeedback(fb, err.message, 'error'));
         }
 
-        // ─── Dues ──────────────────────────────────────────────────
+        // ─── Dues ───────────────────────────────────────────
         function loadDues() {
             api('/dues').then(dues => {
                 const tbody = document.getElementById('dues-table-body');
-                if (dues.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-4 text-center text-gray-400">No dues records yet. Add one above.</td></tr>';
-                    return;
-                }
-                tbody.innerHTML = dues.map((d, i) =>
-                    `<tr class="hover:bg-gray-50">
-                        <td class="px-6 py-4 font-semibold text-gray-800">${escapeHtml(d.client_name)}</td>
-                        <td class="px-6 py-4 text-amber-600 font-bold">Tk ${d.pending.toLocaleString()}</td>
-                        <td class="px-6 py-4 text-gray-500 text-xs">${escapeHtml(d.note) || '-'}</td>
-                        <td class="px-6 py-4">
-                            <input type="number" id="collect-input-${d.id}" placeholder="Amt" min="1" max="${d.pending}" class="w-28 border border-gray-200 rounded-lg px-3 py-1.5 text-sm outline-none focus:ring-2 focus:ring-emerald-500">
-                        </td>
-                        <td class="px-6 py-4 text-center">
-                            <button onclick="collectDue(${d.id})" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs px-4 py-2 rounded-lg font-medium transition-all"><i class="fa-solid fa-money-bill-wave mr-1"></i> Collect</button>
-                        </td>
-                    </tr>`
+                if (dues.length === 0) { tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-muted);">No dues records.</td></tr>'; return; }
+                tbody.innerHTML = dues.map(d =>
+                    `<tr><td style="font-weight:600;">${escapeHtml(d.client_name)}</td><td style="color:#D97706;font-weight:700;">Tk ${d.pending.toLocaleString()}</td><td style="color:var(--text-muted);font-size:12px;">${escapeHtml(d.note)||'-'}</td><td><input type="number" id="collect-input-${d.id}" placeholder="Amt" min="1" max="${d.pending}" class="input-modern" style="width:120px;padding:8px 12px;"></td><td style="text-align:center;"><button onclick="collectDue(${d.id})" style="background:#10B981;color:#fff;border:none;border-radius:8px;padding:7px 14px;font-size:11px;font-weight:600;cursor:pointer;"><i class="fa-solid fa-money-bill-wave"></i> Collect</button></td></tr>`
                 ).join('');
-            });
+            }).catch(() => {});
         }
 
         function addDue() {
@@ -751,11 +1218,9 @@
             const client = document.getElementById('due-client').value.trim();
             const amount = parseFloat(document.getElementById('due-amount').value);
             const note = document.getElementById('due-note').value.trim();
-
             if (!client || !amount) { showFeedback(fb, 'Client name and amount required.', 'error'); return; }
-
             api('/dues', { method: 'POST', body: JSON.stringify({ client_name: client, amount, note }) }).then(() => {
-                showFeedback(fb, 'Due record added successfully!', 'success');
+                showFeedback(fb, 'Due record added!', 'success');
                 document.getElementById('add-due-form').reset();
                 loadDues();
                 loadDashboard();
@@ -767,27 +1232,18 @@
             const client = document.getElementById('sell-client').value.trim();
             const totalSale = parseFloat(document.getElementById('sell-total').value);
             const paidNow = parseFloat(document.getElementById('sell-paid').value);
-
-            if (!client || !totalSale) { showFeedback(fb, 'Client and total sale amount required.', 'error'); return; }
-            if (paidNow > totalSale) { showFeedback(fb, 'Paid amount cannot exceed total sale.', 'error'); return; }
-
+            if (!client || !totalSale) { showFeedback(fb, 'Client and total required.', 'error'); return; }
+            if (paidNow > totalSale) { showFeedback(fb, 'Paid cannot exceed total.', 'error'); return; }
             const remainingDue = totalSale - paidNow;
-
-            // Add cash in as ledger entry (main type)
             const saveEntry = paidNow > 0
                 ? api('/entries', { method: 'POST', body: JSON.stringify({ description: client + ' (Sale)', notes: 'POS Sale', amount: paidNow, entry_type: 'main' }) })
                 : Promise.resolve();
-
             saveEntry.then(() => {
                 if (remainingDue > 0) {
-                    return api('/dues', { method: 'POST', body: JSON.stringify({
-                        client_name: client,
-                        amount: remainingDue,
-                        note: 'Sale Due (Total: Tk ' + totalSale + ', Paid: Tk ' + paidNow + ')'
-                    }) });
+                    return api('/dues', { method: 'POST', body: JSON.stringify({ client_name: client, amount: remainingDue, note: 'Sale Due (Total: Tk ' + totalSale + ', Paid: Tk ' + paidNow + ')' }) });
                 }
             }).then(() => {
-                showFeedback(fb, 'Sale completed! Paid: Tk ' + paidNow + '. Due added: Tk ' + remainingDue + '.', 'success');
+                showFeedback(fb, 'Sale done! Paid: Tk ' + paidNow + '. Due: Tk ' + remainingDue + '.', 'success');
                 document.getElementById('sell-due-form').reset();
                 loadDues();
                 loadDashboard();
@@ -798,11 +1254,9 @@
             const fb = document.getElementById('dues-feedback');
             const input = document.getElementById('collect-input-' + id);
             const amount = parseFloat(input.value);
-
-            if (!amount || amount <= 0) { showFeedback(fb, 'Enter a valid amount to collect.', 'error'); return; }
-
+            if (!amount || amount <= 0) { showFeedback(fb, 'Enter valid amount.', 'error'); return; }
             api('/dues/' + id + '/collect', { method: 'POST', body: JSON.stringify({ amount }) }).then(() => {
-                showFeedback(fb, 'Collection recorded successfully!', 'success');
+                showFeedback(fb, 'Collection recorded!', 'success');
                 input.value = '';
                 loadDues();
                 loadDashboard();
@@ -812,33 +1266,177 @@
         function exportCSV() {
             const date = document.getElementById('report-date-picker').value || new Date().toISOString().slice(0, 10);
             api('/reports/daily?date=' + date).then(r => {
-                let csv = 'S.A TELECOM - Daily Ledger Report (' + date + ')\n\n';
-                csv += 'Main Ledger Entries\n';
-                csv += '#,Description,Notes,Amount\n';
-                r.mainEntries.forEach((e, i) => {
-                    csv += (i + 1) + ',' + '"' + (e.description || '').replace(/"/g, '""') + '",' + '"' + (e.notes || '').replace(/"/g, '""') + '",' + e.amount + '\n';
-                });
+                let csv = 'S.A TELECOM - Daily Report (' + date + ')\n\n';
+                csv += 'Walk-in Sales,' + r.walkinTotal + '\n';
+                csv += 'Market Sales,' + r.marketTotal + '\n\n';
+                csv += 'Main Ledger\n#,Description,Notes,Amount\n';
+                r.mainEntries.forEach((e, i) => { csv += (i+1)+',"'+(e.description||'').replace(/"/g,'""')+'","'+(e.notes||'').replace(/"/g,'""')+'",'+e.amount+'\n'; });
                 csv += ',Subtotal,,' + r.mainTotal + '\n\n';
-                csv += 'Cash Out / Distribution\n';
-                csv += 'Receiver / Head,Amount\n';
-                r.cashOutEntries.forEach(e => {
-                    csv += '"' + (e.description || '').replace(/"/g, '""') + '",' + e.amount + '\n';
-                });
+                csv += 'Cash Out\nReceiver,Amount\n';
+                r.cashOutEntries.forEach(e => { csv += '"'+(e.description||'').replace(/"/g,'""')+'",'+e.amount+'\n'; });
                 csv += 'Total Out,,' + r.cashOutTotal + '\n\n';
-                csv += 'Summary\n';
-                csv += 'Opening Balance,' + r.openingBalance + '\n';
-                csv += 'Ledger In,' + r.mainTotal + '\n';
-                csv += 'Cash Out,' + r.cashOutTotal + '\n';
-                csv += 'Net Total (To),' + r.netTotal + '\n';
-
-                const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+                csv += 'Summary\nOpening,' + r.openingBalance + '\nLedger In,' + r.mainTotal + '\nCash Out,' + r.cashOutTotal + '\nNet,' + r.netTotal + '\n';
+                const blob = new Blob(['\uFEFF'+csv], { type: 'text/csv;charset=utf-8;' });
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
-                a.href = url;
-                a.download = 'Ledger_Report_' + date + '.csv';
-                a.click();
+                a.href = url; a.download = 'Ledger_' + date + '.csv'; a.click();
                 URL.revokeObjectURL(url);
+            }).catch(() => {});
+        }
+
+        // ─── User Management ────────────────────────────────
+        let editingUserId = null;
+
+        function showCreateUser() {
+            editingUserId = null;
+            document.getElementById('user-form-title').textContent = 'Create Staff Account';
+            document.getElementById('uf-username').value = '';
+            document.getElementById('uf-display').value = '';
+            document.getElementById('uf-password').value = '';
+            document.getElementById('uf-username').disabled = false;
+            document.querySelectorAll('.perm-cb').forEach(cb => {
+                cb.checked = ['add_sale','add_due','collect_due','view_report','search_customer','view_dashboard'].includes(cb.value);
             });
+            document.getElementById('user-form-card').classList.remove('hidden');
+        }
+
+        function hideUserForm() {
+            document.getElementById('user-form-card').classList.add('hidden');
+            editingUserId = null;
+        }
+
+        function loadUsers() {
+            api('/users').then(users => {
+                const tbody = document.getElementById('users-table-body');
+                if (users.length === 0) { tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--text-muted);">No users.</td></tr>'; return; }
+                tbody.innerHTML = users.map(u => {
+                    const isAdmin = u.role === 'admin';
+                    const perms = isAdmin ? ['ALL'] : (u.permissions || []);
+                    const isPrimary = u.id === 1;
+                    return `<tr>
+                        <td><div style="display:flex;align-items:center;gap:12px;"><div style="width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;${isAdmin?'background:#EFF6FF;color:#2563EB':'background:var(--border);color:var(--text-muted);'}"><i class="fa-solid fa-user"></i></div><div><p style="font-weight:600;">${escapeHtml(u.display_name)}</p><p style="font-size:11px;color:var(--text-muted);">@${escapeHtml(u.username)}</p></div></div></td>
+                        <td><span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;${isAdmin?'background:#EFF6FF;color:#2563EB':'background:var(--border);color:var(--text-muted);'}">${isAdmin?'Admin':'Staff'}</span></td>
+                        <td><div style="display:flex;flex-wrap:wrap;gap:4px;">${isAdmin?'<span style="font-size:11px;padding:3px 8px;border-radius:20px;background:#EFF6FF;color:#2563EB;font-weight:500;">All Permissions</span>':perms.map(p=>'<span style="font-size:11px;padding:3px 8px;border-radius:20px;background:var(--border);color:var(--text-muted);">'+p.replace(/_/g,' ')+'</span>').join('')}</div></td>
+                        <td style="text-align:center;">${isPrimary?'<span style="font-size:12px;color:var(--text-muted);">Primary Admin</span>':`<button onclick="editUser(${u.id})" style="color:#2563EB;background:none;border:none;cursor:pointer;margin-right:12px;font-size:14px;"><i class="fa-solid fa-pen"></i></button><button onclick="deleteUser(${u.id},'${escapeHtml(u.username)}')" style="color:#EF4444;background:none;border:none;cursor:pointer;font-size:14px;"><i class="fa-solid fa-trash"></i></button>`}</td>
+                    </tr>`;
+                }).join('');
+            }).catch(() => {});
+        }
+
+        function editUser(id) {
+            api('/users').then(users => {
+                const u = users.find(x => x.id === id);
+                if (!u) return;
+                editingUserId = id;
+                document.getElementById('user-form-title').textContent = 'Edit: ' + u.display_name;
+                document.getElementById('uf-username').value = u.username;
+                document.getElementById('uf-username').disabled = true;
+                document.getElementById('uf-display').value = u.display_name;
+                document.getElementById('uf-password').value = '';
+                const perms = u.permissions || [];
+                document.querySelectorAll('.perm-cb').forEach(cb => { cb.checked = perms.includes(cb.value); });
+                document.getElementById('user-form-card').classList.remove('hidden');
+            }).catch(() => {});
+        }
+
+        function saveUser() {
+            const fb = document.getElementById('user-feedback');
+            const username = document.getElementById('uf-username').value.trim();
+            const display_name = document.getElementById('uf-display').value.trim();
+            const password = document.getElementById('uf-password').value;
+            const permissions = Array.from(document.querySelectorAll('.perm-cb:checked')).map(cb => cb.value);
+            if (!username) { showFeedback(fb, 'Username required.', 'error'); return; }
+            if (!editingUserId && !password) { showFeedback(fb, 'Password required for new user.', 'error'); return; }
+            const btn = document.getElementById('uf-submit-btn');
+            btn.disabled = true;
+            if (editingUserId) {
+                const body = { display_name: display_name || username, permissions };
+                if (password) body.password = password;
+                api('/users/' + editingUserId, { method: 'PUT', body: JSON.stringify(body) }).then(() => {
+                    showFeedback(fb, 'User updated!', 'success');
+                    hideUserForm();
+                    loadUsers();
+                }).catch(err => showFeedback(fb, err.message, 'error')).finally(() => { btn.disabled = false; });
+            } else {
+                api('/users', { method: 'POST', body: JSON.stringify({ username, password, display_name: display_name || username, role: 'staff', permissions }) }).then(() => {
+                    showFeedback(fb, 'Staff account created!', 'success');
+                    hideUserForm();
+                    loadUsers();
+                }).catch(err => showFeedback(fb, err.message, 'error')).finally(() => { btn.disabled = false; });
+            }
+        }
+
+        function deleteUser(id, name) {
+            if (!confirm('Delete user "' + name + '"? This cannot be undone.')) return;
+            api('/users/' + id, { method: 'DELETE' }).then(() => loadUsers()).catch(err => alert(err.message));
+        }
+
+        // ─── Backup & Recovery ──────────────────────────────
+        function checkHealth() {
+            const el = document.getElementById('backup-health-status');
+            el.textContent = 'Checking...'; el.style.color = 'var(--text-muted)'; el.style.fontWeight = 'normal';
+            api('/backup/check').then(r => {
+                if (r.ok) { el.textContent = 'Database is healthy'; el.style.color = '#10B981'; el.style.fontWeight = '700'; }
+                else { el.textContent = 'Issue: ' + (r.error||r.result); el.style.color = '#EF4444'; el.style.fontWeight = '700'; }
+            }).catch(err => { el.textContent = 'Check failed: ' + err.message; el.style.color = '#EF4444'; el.style.fontWeight = 'normal'; });
+        }
+
+        function loadBackups() {
+            api('/backup/list').then(list => {
+                const tbody = document.getElementById('backup-list-body');
+                if (list.length === 0) { tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--text-muted);">No backups.</td></tr>'; return; }
+                tbody.innerHTML = list.map(b => {
+                    const sz = (b.size/1024).toFixed(1);
+                    const dt = new Date(b.date);
+                    return `<tr><td style="font-weight:600;font-size:13px;">${escapeHtml(b.name)}</td><td style="color:var(--text-muted);">${sz} KB</td><td style="color:var(--text-muted);font-size:12px;">${dt.toLocaleDateString('en-GB')} ${dt.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}</td><td style="text-align:center;"><button onclick="restoreBackup('${escapeHtml(b.name)}')" style="background:#D97706;color:#fff;border:none;border-radius:8px;padding:7px 14px;font-size:11px;font-weight:600;cursor:pointer;"><i class="fa-solid fa-rotate-left"></i> Restore</button></td></tr>`;
+                }).join('');
+            }).catch(() => {});
+        }
+
+        function createBackup() {
+            const fb = document.getElementById('backup-feedback');
+            api('/backup/create', { method: 'POST' }).then(r => {
+                showFeedback(fb, 'Backup created: ' + r.file, 'success');
+                loadBackups();
+            }).catch(err => showFeedback(fb, 'Backup failed: ' + err.message, 'error'));
+        }
+
+        function restoreBackup(filename) {
+            if (!confirm('Restore from "' + filename + '"? Current data will be replaced. A backup will be saved first.')) return;
+            const fb = document.getElementById('backup-feedback');
+            api('/backup/restore', { method: 'POST', body: JSON.stringify({ filename }) }).then(r => {
+                showFeedback(fb, r.message + ' Reloading...', 'success');
+                setTimeout(() => window.location.reload(), 1500);
+            }).catch(err => showFeedback(fb, 'Restore failed: ' + err.message, 'error'));
+        }
+
+        function exportJSON() {
+            api('/backup/export/download').then(data => {
+                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url; a.download = 'satelcom-export-' + new Date().toISOString().slice(0,10) + '.json'; a.click();
+                URL.revokeObjectURL(url);
+                showFeedback(document.getElementById('backup-feedback'), 'Data exported!', 'success');
+            }).catch(err => showFeedback(document.getElementById('backup-feedback'), 'Export failed: ' + err.message, 'error'));
+        }
+
+        function importJSON(file) {
+            if (!file) return;
+            if (!confirm('Import from "' + file.name + '"? This REPLACES all current data. Backup will be saved first.')) return;
+            const fb = document.getElementById('backup-feedback');
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    api('/backup/import', { method: 'POST', body: JSON.stringify({ data }) }).then(r => {
+                        showFeedback(fb, r.message + ' Reloading...', 'success');
+                        setTimeout(() => window.location.reload(), 1500);
+                    }).catch(err => showFeedback(fb, 'Import failed: ' + err.message, 'error'));
+                } catch { showFeedback(fb, 'Invalid JSON file', 'error'); }
+            };
+            reader.readAsText(file);
+            document.getElementById('import-file-input').value = '';
         }
 
         function escapeHtml(str) {
@@ -846,6 +1444,16 @@
             const div = document.createElement('div');
             div.textContent = str;
             return div.innerHTML;
+        }
+
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('open');
+            document.getElementById('sidebar-overlay').classList.toggle('active');
+        }
+
+        function closeSidebar() {
+            document.getElementById('sidebar').classList.remove('open');
+            document.getElementById('sidebar-overlay').classList.remove('active');
         }
     </script>
 </body>

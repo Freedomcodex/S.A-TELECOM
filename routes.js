@@ -1,7 +1,8 @@
 const express = require('express');
+const path = require('path');
 const bcrypt = require('bcryptjs');
-const { getOne, getAll, qRun, maxId, backupDb, getLocalDate, isValidDate, roundAmount } = require('./db');
-const { generateToken, authenticate, adminOnly } = require('./middleware');
+const { getOne, getAll, qRun, maxId, backupDb, listBackups, restoreFromBackup, checkIntegrity, exportAllData, saveExportJson, importFromData, getLocalDate, isValidDate, roundAmount } = require('./db');
+const { generateToken, authenticate, adminOnly, requirePermission, getUserPermissions, ALL_PERMISSIONS } = require('./middleware');
 
 const router = express.Router();
 
@@ -18,33 +19,81 @@ router.post('/auth/login', (req, res) => {
     return res.status(401).json({ error: 'Invalid credentials' });
   }
 
+  const permissions = user.role === 'admin' ? ALL_PERMISSIONS : getUserPermissions(user.id);
   const token = generateToken(user);
   res.json({
     token,
-    user: { id: user.id, username: user.username, role: user.role, display_name: user.display_name }
+    user: { id: user.id, username: user.username, role: user.role, display_name: user.display_name, permissions }
   });
 });
 
-router.post('/auth/register', authenticate, adminOnly, (req, res) => {
-  const { username, password, display_name, role } = req.body;
+// ─── User Management ────────────────────────────────────────────
+
+router.get('/users', authenticate, adminOnly, (req, res) => {
+  const users = getAll('SELECT id, username, display_name, role, permissions, created_at FROM users ORDER BY id ASC');
+  res.json(users.map(u => ({
+    ...u,
+    permissions: u.role === 'admin' ? ALL_PERMISSIONS : (u.permissions ? u.permissions.split(',').filter(Boolean) : [])
+  })));
+});
+
+router.post('/users', authenticate, adminOnly, (req, res) => {
+  const { username, password, display_name, role, permissions } = req.body;
   if (!username || !password) {
     return res.status(400).json({ error: 'Username and password required' });
   }
-
   const existing = getOne('SELECT id FROM users WHERE username = ?', [username]);
   if (existing) {
     return res.status(409).json({ error: 'Username already exists' });
   }
-
   const hash = bcrypt.hashSync(password, 10);
-  qRun('INSERT INTO users (username, password_hash, display_name, role) VALUES (?, ?, ?, ?)',
-    [username, hash, display_name || username, role || 'staff']);
+  const userRole = role === 'admin' ? 'admin' : 'staff';
+  const perms = userRole === 'admin' ? '' : (Array.isArray(permissions) ? permissions.join(',') : '');
+  qRun('INSERT INTO users (username, password_hash, display_name, role, permissions) VALUES (?, ?, ?, ?, ?)',
+    [username, hash, display_name || username, userRole, perms]);
+  res.status(201).json({ id: maxId('users'), username, display_name: display_name || username, role: userRole });
+});
 
-  res.status(201).json({ id: maxId('users'), username, display_name, role });
+router.put('/users/:id', authenticate, adminOnly, (req, res) => {
+  const { display_name, role, permissions, password } = req.body;
+  const userId = parseInt(req.params.id);
+  if (userId === 1) return res.status(400).json({ error: 'Cannot modify primary admin' });
+
+  const user = getOne('SELECT * FROM users WHERE id = ?', [userId]);
+  if (!user) return res.status(404).json({ error: 'User not found' });
+
+  if (password) {
+    const hash = bcrypt.hashSync(password, 10);
+    qRun('UPDATE users SET password_hash = ? WHERE id = ?', [hash, userId]);
+  }
+  if (display_name !== undefined) {
+    qRun('UPDATE users SET display_name = ? WHERE id = ?', [display_name, userId]);
+  }
+  if (role !== undefined) {
+    const userRole = role === 'admin' ? 'admin' : 'staff';
+    qRun('UPDATE users SET role = ? WHERE id = ?', [userRole, userId]);
+  }
+  if (permissions !== undefined && Array.isArray(permissions)) {
+    qRun('UPDATE users SET permissions = ? WHERE id = ?', [permissions.join(','), userId]);
+  }
+  res.json({ success: true });
+});
+
+router.delete('/users/:id', authenticate, adminOnly, (req, res) => {
+  const userId = parseInt(req.params.id);
+  if (userId === 1) return res.status(400).json({ error: 'Cannot delete primary admin' });
+  const result = qRun('DELETE FROM users WHERE id = ?', [userId]);
+  if (result.changes === 0) return res.status(404).json({ error: 'User not found' });
+  res.json({ success: true });
+});
+
+router.get('/permissions', authenticate, adminOnly, (req, res) => {
+  res.json(ALL_PERMISSIONS);
 });
 
 router.get('/auth/me', authenticate, (req, res) => {
-  res.json(req.user);
+  const permissions = req.user.role === 'admin' ? ALL_PERMISSIONS : getUserPermissions(req.user.id);
+  res.json({ ...req.user, permissions });
 });
 
 // ─── Settings ───────────────────────────────────────────────────
@@ -56,7 +105,7 @@ router.get('/settings', authenticate, (req, res) => {
   res.json(map);
 });
 
-router.put('/settings', authenticate, adminOnly, (req, res) => {
+router.put('/settings', authenticate, requirePermission('change_settings'), (req, res) => {
   const { opening_balance } = req.body;
   if (opening_balance !== undefined) {
     qRun('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)', ['opening_balance', String(opening_balance)]);
@@ -79,14 +128,19 @@ router.get('/entries', authenticate, (req, res) => {
   res.json(getAll(sql, params));
 });
 
-router.post('/entries', authenticate, (req, res) => {
-  let { entry_date, description, notes, amount, entry_type } = req.body;
+router.post('/entries', authenticate, requirePermission('add_sale'), (req, res) => {
+  let { entry_date, description, notes, amount, entry_type, customer_type, client_name } = req.body;
 
   if (!description || !amount || !entry_type) {
     return res.status(400).json({ error: 'Description, amount, and entry_type required' });
   }
   if (!['main', 'cashout'].includes(entry_type)) {
     return res.status(400).json({ error: 'entry_type must be "main" or "cashout"' });
+  }
+
+  customer_type = customer_type || 'walkin';
+  if (!['walkin', 'market'].includes(customer_type)) {
+    return res.status(400).json({ error: 'customer_type must be "walkin" or "market"' });
   }
 
   entry_date = entry_date || getLocalDate();
@@ -100,18 +154,65 @@ router.post('/entries', authenticate, (req, res) => {
   }
 
   qRun(
-    'INSERT INTO entries (entry_date, description, notes, amount, entry_type, created_by) VALUES (?, ?, ?, ?, ?, ?)',
-    [entry_date, description, notes || '', amount, entry_type, req.user.id]
+    'INSERT INTO entries (entry_date, description, notes, amount, entry_type, customer_type, client_name, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+    [entry_date, description, notes || '', amount, entry_type, customer_type, client_name || '', req.user.id]
   );
 
   const entry = getOne('SELECT * FROM entries WHERE id = ?', [maxId('entries')]);
   res.status(201).json(entry);
 });
 
-router.delete('/entries/:id', authenticate, adminOnly, (req, res) => {
+router.delete('/entries/:id', authenticate, requirePermission('delete_entries'), (req, res) => {
   const result = qRun('DELETE FROM entries WHERE id = ?', [req.params.id]);
   if (result.changes === 0) return res.status(404).json({ error: 'Entry not found' });
   res.json({ success: true });
+});
+
+router.post('/market-sale', authenticate, requirePermission('add_sale'), (req, res) => {
+  let { entry_date, client_name, description, notes, amount, paid_now } = req.body;
+
+  if (!client_name || !description || !amount) {
+    return res.status(400).json({ error: 'Client name, description, and amount required' });
+  }
+
+  entry_date = entry_date || getLocalDate();
+  if (!isValidDate(entry_date)) {
+    return res.status(400).json({ error: 'Invalid date format. Use YYYY-MM-DD' });
+  }
+
+  amount = roundAmount(parseFloat(amount));
+  paid_now = roundAmount(parseFloat(paid_now) || 0);
+  if (isNaN(amount) || amount <= 0) {
+    return res.status(400).json({ error: 'Amount must be a positive number' });
+  }
+  if (paid_now < 0 || paid_now > amount) {
+    return res.status(400).json({ error: 'Paid amount must be between 0 and total' });
+  }
+
+  if (paid_now > 0) {
+    qRun(
+      'INSERT INTO entries (entry_date, description, notes, amount, entry_type, customer_type, client_name, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      [entry_date, client_name + ' (Market Sale)', notes || 'Market Sale', paid_now, 'main', 'market', client_name, req.user.id]
+    );
+  }
+
+  const due_amount = roundAmount(amount - paid_now);
+  if (due_amount > 0) {
+    qRun(
+      'INSERT INTO dues (client_name, amount, note, created_by) VALUES (?, ?, ?, ?)',
+      [client_name, due_amount, 'Market Sale: ' + description + (notes ? ' - ' + notes : ''), req.user.id]
+    );
+  }
+
+  res.status(201).json({
+    success: true,
+    sale_amount: amount,
+    paid: paid_now,
+    due: due_amount,
+    message: due_amount > 0
+      ? 'Sale recorded. Due: Tk ' + due_amount + ' added for ' + client_name
+      : 'Sale recorded. Full payment received.'
+  });
 });
 
 // ─── Dues ───────────────────────────────────────────────────────
@@ -131,7 +232,7 @@ router.get('/dues', authenticate, (req, res) => {
   res.json(dues);
 });
 
-router.post('/dues', authenticate, (req, res) => {
+router.post('/dues', authenticate, requirePermission('add_due'), (req, res) => {
   const { client_name, amount: rawAmount, note } = req.body;
   if (!client_name || !rawAmount) {
     return res.status(400).json({ error: 'client_name and amount required' });
@@ -149,7 +250,7 @@ router.post('/dues', authenticate, (req, res) => {
   res.status(201).json(due);
 });
 
-router.post('/dues/:id/collect', authenticate, (req, res) => {
+router.post('/dues/:id/collect', authenticate, requirePermission('collect_due'), (req, res) => {
   const rawAmount = req.body.amount;
   if (!rawAmount || rawAmount <= 0) {
     return res.status(400).json({ error: 'Valid collection amount required' });
@@ -332,6 +433,11 @@ router.get('/reports/daily', authenticate, (req, res) => {
   const mainTotal = roundAmount(mainEntries.reduce((s, e) => s + e.amount, 0));
   const cashOutTotal = roundAmount(cashOutEntries.reduce((s, e) => s + e.amount, 0));
 
+  const walkinEntries = mainEntries.filter(e => (e.customer_type || 'walkin') === 'walkin');
+  const marketEntries = mainEntries.filter(e => e.customer_type === 'market');
+  const walkinTotal = roundAmount(walkinEntries.reduce((s, e) => s + e.amount, 0));
+  const marketTotal = roundAmount(marketEntries.reduce((s, e) => s + e.amount, 0));
+
   res.json({
     date: reportDate,
     openingBalance,
@@ -339,8 +445,155 @@ router.get('/reports/daily', authenticate, (req, res) => {
     cashOutEntries,
     mainTotal,
     cashOutTotal,
+    walkinTotal,
+    marketTotal,
     netTotal: roundAmount(openingBalance + mainTotal - cashOutTotal)
   });
+});
+
+// ─── Backup & Recovery ─────────────────────────────────────────
+
+router.get('/backup/check', authenticate, requirePermission('backup_recovery'), (req, res) => {
+  const result = checkIntegrity();
+  res.json(result);
+});
+
+router.post('/backup/create', authenticate, requirePermission('backup_recovery'), (req, res) => {
+  try {
+    const file = backupDb('manual');
+    if (file) res.json({ success: true, file: path.basename(file) });
+    else res.status(500).json({ error: 'Backup failed' });
+  } catch (e) {
+    console.error('Backup create error:', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+router.get('/backup/list', authenticate, requirePermission('backup_recovery'), (req, res) => {
+  res.json(listBackups());
+});
+
+router.post('/backup/restore', authenticate, adminOnly, (req, res) => {
+  const { filename } = req.body;
+  if (!filename) return res.status(400).json({ error: 'filename required' });
+  const backupFile = path.join(__dirname, 'data', 'backups', filename);
+  restoreFromBackup(backupFile).then(result => {
+    if (result.ok) res.json(result);
+    else res.status(400).json(result);
+  }).catch(e => {
+    console.error('Restore error:', e.message);
+    res.status(500).json({ error: e.message });
+  });
+});
+
+router.post('/backup/export', authenticate, adminOnly, (req, res) => {
+  const filePath = saveExportJson();
+  if (filePath) res.json({ success: true, file: require('path').basename(filePath) });
+  else res.status(500).json({ error: 'Export failed' });
+});
+
+router.get('/backup/export/download', authenticate, adminOnly, (req, res) => {
+  const data = exportAllData();
+  if (!data) return res.status(500).json({ error: 'Export failed' });
+  res.setHeader('Content-Type', 'application/json');
+  res.setHeader('Content-Disposition', `attachment; filename="satelcom-export-${getLocalDate()}.json"`);
+  res.json(data);
+});
+
+router.post('/backup/import', authenticate, adminOnly, (req, res) => {
+  const { data } = req.body;
+  if (!data || typeof data !== 'object') return res.status(400).json({ error: 'data object required' });
+  const result = importFromData(data);
+  res.json(result);
+});
+
+router.delete('/admin/clear-data', authenticate, adminOnly, (req, res) => {
+  qRun('DELETE FROM collections');
+  qRun('DELETE FROM supplier_pay_records');
+  qRun('DELETE FROM entries');
+  qRun('DELETE FROM dues');
+  qRun('DELETE FROM supplier_payments');
+  res.json({ success: true, message: 'All data cleared. Users and settings preserved.' });
+});
+
+// ─── Activity Feed ───────────────────────────────────────────────
+
+router.get('/activity', authenticate, (req, res) => {
+  const items = [];
+
+  const recentEntries = getAll(`
+    SELECT description, amount, entry_type, customer_type, client_name, created_at, u.display_name as user_name
+    FROM entries e LEFT JOIN users u ON e.created_by = u.id
+    ORDER BY e.id DESC LIMIT 15
+  `);
+  recentEntries.forEach(e => {
+    const type = e.entry_type === 'cashout' ? 'Cash Out' : 'Sale';
+    const name = e.customer_type === 'market' ? (e.client_name || e.description) : e.description;
+    items.push({
+      action: 'entry_added',
+      message: `${e.user_name || 'User'} added ${type}: ${name} (+Tk ${e.amount.toLocaleString()})`,
+      created_at: e.created_at
+    });
+  });
+
+  const recentDues = getAll(`
+    SELECT d.client_name, d.amount, d.created_at, u.display_name as user_name
+    FROM dues d LEFT JOIN users u ON d.created_by = u.id
+    ORDER BY d.id DESC LIMIT 10
+  `);
+  recentDues.forEach(d => {
+    items.push({
+      action: 'due_added',
+      message: `${d.user_name || 'User'} added due: ${d.client_name} (Tk ${d.amount.toLocaleString()})`,
+      created_at: d.created_at
+    });
+  });
+
+  const recentCollections = getAll(`
+    SELECT d.client_name, c.amount, c.collected_at, u.display_name as user_name
+    FROM collections c
+    LEFT JOIN dues d ON c.due_id = d.id
+    LEFT JOIN users u ON c.collected_by = u.id
+    ORDER BY c.id DESC LIMIT 10
+  `);
+  recentCollections.forEach(c => {
+    items.push({
+      action: 'due_collected',
+      message: `${c.user_name || 'User'} collected Tk ${c.amount.toLocaleString()} from ${c.client_name || 'Client'}`,
+      created_at: c.collected_at
+    });
+  });
+
+  const recentSupplierPayments = getAll(`
+    SELECT sp.supplier_name, sp.amount, sp.created_at, u.display_name as user_name
+    FROM supplier_payments sp LEFT JOIN users u ON sp.created_by = u.id
+    ORDER BY sp.id DESC LIMIT 10
+  `);
+  recentSupplierPayments.forEach(p => {
+    items.push({
+      action: 'supplier_added',
+      message: `${p.user_name || 'User'} added supplier payable: ${p.supplier_name} (Tk ${p.amount.toLocaleString()})`,
+      created_at: p.created_at
+    });
+  });
+
+  const recentSupplierPayRecords = getAll(`
+    SELECT sp.supplier_name, pr.amount, pr.paid_at, u.display_name as user_name
+    FROM supplier_pay_records pr
+    LEFT JOIN supplier_payments sp ON pr.supplier_payment_id = sp.id
+    LEFT JOIN users u ON pr.paid_by = u.id
+    ORDER BY pr.id DESC LIMIT 10
+  `);
+  recentSupplierPayRecords.forEach(r => {
+    items.push({
+      action: 'supplier_paid',
+      message: `${r.user_name || 'User'} paid Tk ${r.amount.toLocaleString()} to ${r.supplier_name || 'Supplier'}`,
+      created_at: r.paid_at
+    });
+  });
+
+  items.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+  res.json(items.slice(0, 20));
 });
 
 module.exports = router;
