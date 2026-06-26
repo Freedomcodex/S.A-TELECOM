@@ -479,6 +479,9 @@ function seedDefaults() {
     db.run('INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)', ['opening_balance', '4300']);
     db.run('INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)', ['currency_symbol', 'OMR']);
     db.run('INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)', ['shop_name', 'S.A TELECOM']);
+    db.run('INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)', ['contact_phone', '']);
+    db.run('INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)', ['contact_email', '']);
+    db.run('INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)', ['contact_address', '']);
   }
 }
 

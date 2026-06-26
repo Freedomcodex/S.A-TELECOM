@@ -106,7 +106,7 @@ router.get('/settings', authenticate, (req, res) => {
 });
 
 router.put('/settings', authenticate, requirePermission('change_settings'), (req, res) => {
-  const { opening_balance, currency_symbol, shop_name } = req.body;
+  const { opening_balance, currency_symbol, shop_name, contact_phone, contact_email, contact_address } = req.body;
   if (opening_balance !== undefined) {
     qRun('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)', ['opening_balance', String(opening_balance)]);
   }
@@ -115,6 +115,15 @@ router.put('/settings', authenticate, requirePermission('change_settings'), (req
   }
   if (shop_name !== undefined) {
     qRun('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)', ['shop_name', String(shop_name)]);
+  }
+  if (contact_phone !== undefined) {
+    qRun('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)', ['contact_phone', String(contact_phone)]);
+  }
+  if (contact_email !== undefined) {
+    qRun('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)', ['contact_email', String(contact_email)]);
+  }
+  if (contact_address !== undefined) {
+    qRun('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)', ['contact_address', String(contact_address)]);
   }
   res.json({ success: true });
 });
@@ -631,6 +640,9 @@ router.delete('/admin/clear-data', authenticate, adminOnly, (req, res) => {
   qRun("INSERT OR IGNORE INTO settings (key, value) VALUES ('opening_balance', '4300')");
   qRun("INSERT OR IGNORE INTO settings (key, value) VALUES ('currency_symbol', 'OMR')");
   qRun("INSERT OR IGNORE INTO settings (key, value) VALUES ('shop_name', 'S.A TELECOM')");
+  qRun("INSERT OR IGNORE INTO settings (key, value) VALUES ('contact_phone', '')");
+  qRun("INSERT OR IGNORE INTO settings (key, value) VALUES ('contact_email', '')");
+  qRun("INSERT OR IGNORE INTO settings (key, value) VALUES ('contact_address', '')");
   const hash = require('bcryptjs').hashSync(process.env.ADMIN_PASSWORD || 'admin123', 10);
   qRun("UPDATE users SET password_hash=? WHERE id=1", [hash]);
   res.json({ success: true, message: 'All data cleared. Admin user preserved with default password. Settings reset to defaults.' });

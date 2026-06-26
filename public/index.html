@@ -250,6 +250,13 @@
                 </div>
             </div>
 
+            <!-- Contact Info -->
+            <div id="sidebar-contact" style="display:none;padding:0 20px 12px;border-bottom:1px solid rgba(255,255,255,0.08);margin-bottom:8px;">
+                <div id="sc-phone" style="font-size:11px;color:rgba(255,255,255,0.7);margin-bottom:4px;"><i class="fa-solid fa-phone" style="width:14px;"></i> <span></span></div>
+                <div id="sc-email" style="font-size:11px;color:rgba(255,255,255,0.7);margin-bottom:4px;"><i class="fa-solid fa-envelope" style="width:14px;"></i> <span></span></div>
+                <div id="sc-address" style="font-size:11px;color:rgba(255,255,255,0.7);"><i class="fa-solid fa-location-dot" style="width:14px;"></i> <span></span></div>
+            </div>
+
             <!-- Nav Groups -->
             <nav style="padding:0 12px;flex:1;overflow-y:auto;">
 
@@ -1031,6 +1038,31 @@
                     </div>
                 </div>
 
+                <!-- Contact Information -->
+                <div class="glass-card" style="padding:20px;">
+                    <div style="margin-bottom:16px;">
+                        <h3 style="font-size:13px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:8px;"><i class="fa-solid fa-address-card"></i> Contact Information</h3>
+                        <p style="font-size:12px;color:var(--text-muted);margin:4px 0 0;">Displayed in the sidebar below the business name.</p>
+                    </div>
+                    <div style="display:flex;flex-direction:column;gap:12px;">
+                        <div style="display:flex;align-items:center;gap:8px;">
+                            <i class="fa-solid fa-phone" style="color:var(--text-muted);width:16px;"></i>
+                            <input type="text" id="settings-contact-phone" class="input-modern" style="flex:1;" placeholder="Phone number" maxlength="30">
+                        </div>
+                        <div style="display:flex;align-items:center;gap:8px;">
+                            <i class="fa-solid fa-envelope" style="color:var(--text-muted);width:16px;"></i>
+                            <input type="text" id="settings-contact-email" class="input-modern" style="flex:1;" placeholder="Email address" maxlength="60">
+                        </div>
+                        <div style="display:flex;align-items:flex-start;gap:8px;">
+                            <i class="fa-solid fa-location-dot" style="color:var(--text-muted);width:16px;margin-top:8px;"></i>
+                            <textarea id="settings-contact-address" class="input-modern" style="flex:1;min-height:60px;resize:vertical;" placeholder="Address" maxlength="200"></textarea>
+                        </div>
+                        <div style="text-align:right;">
+                            <button onclick="saveContactInfo()" class="btn-primary"><i class="fa-solid fa-floppy-disk"></i> Save Contact Info</button>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Reset All Data -->
                 <div class="glass-card" style="padding:16px 24px;display:flex;align-items:center;justify-content:space-between;background:#FEF2F2;border:1px solid #FECACA;">
                     <div>
@@ -1049,6 +1081,7 @@
         let userPermissions = [];
         let currencySymbol = 'OMR';
         let shopName = 'S.A TELECOM';
+        let contactPhone = '', contactEmail = '', contactAddress = '';
 
 
         // Dark mode init
@@ -1140,7 +1173,12 @@
                 userPermissions = user.permissions || [];
                 document.getElementById('sidebar-user').textContent = user.display_name || user.username;
                 document.getElementById('sidebar-role').textContent = user.role === 'admin' ? 'Administrator' : 'Staff';
-                api('/settings').then(s => { if (s.currency_symbol) currencySymbol = s.currency_symbol; if (s.shop_name) { shopName = s.shop_name; document.title = 'LedgerPro - ' + shopName; document.getElementById('sidebar-brand').textContent = shopName; document.getElementById('login-brand').textContent = shopName; } }).catch(() => {});
+                api('/settings').then(s => {
+                    if (s.currency_symbol) currencySymbol = s.currency_symbol;
+                    if (s.shop_name) { shopName = s.shop_name; document.title = 'LedgerPro - ' + shopName; document.getElementById('sidebar-brand').textContent = shopName; document.getElementById('login-brand').textContent = shopName; }
+                    contactPhone = s.contact_phone || ''; contactEmail = s.contact_email || ''; contactAddress = s.contact_address || '';
+                    updateSidebarContact();
+                }).catch(() => {});
                 initApp();
             }).catch(() => logout());
         }
@@ -1838,6 +1876,12 @@
                 if (ce) ce.value = s.currency_symbol || 'OMR';
                 const se = document.getElementById('settings-shop-name');
                 if (se) se.value = s.shop_name || 'S.A TELECOM';
+                const pe = document.getElementById('settings-contact-phone');
+                if (pe) pe.value = s.contact_phone || '';
+                const ee = document.getElementById('settings-contact-email');
+                if (ee) ee.value = s.contact_email || '';
+                const ae = document.getElementById('settings-contact-address');
+                if (ae) ae.value = s.contact_address || '';
             }).catch(() => {});
         }
 
@@ -1875,6 +1919,33 @@
             }).catch(err => showFeedback(fb, 'Save failed: ' + err.message, 'error'));
         }
 
+        function updateSidebarContact() {
+            const el = document.getElementById('sidebar-contact');
+            const hasPhone = contactPhone && contactPhone.trim();
+            const hasEmail = contactEmail && contactEmail.trim();
+            const hasAddress = contactAddress && contactAddress.trim();
+            if (hasPhone || hasEmail || hasAddress) {
+                el.style.display = 'block';
+                document.querySelector('#sc-phone span').textContent = contactPhone;
+                document.querySelector('#sc-email span').textContent = contactEmail;
+                document.querySelector('#sc-address span').textContent = contactAddress;
+            } else {
+                el.style.display = 'none';
+            }
+        }
+
+        function saveContactInfo() {
+            const fb = document.getElementById('settings-feedback');
+            const phone = document.getElementById('settings-contact-phone').value.trim();
+            const email = document.getElementById('settings-contact-email').value.trim();
+            const address = document.getElementById('settings-contact-address').value.trim();
+            api('/settings', { method: 'PUT', body: JSON.stringify({ contact_phone: phone, contact_email: email, contact_address: address }) }).then(() => {
+                contactPhone = phone; contactEmail = email; contactAddress = address;
+                updateSidebarContact();
+                showFeedback(fb, 'Contact information saved!', 'success');
+            }).catch(err => showFeedback(fb, 'Save failed: ' + err.message, 'error'));
+        }
+
         function resetAllData() {
             if (!confirm('⚠️ This will DELETE ALL entries, dues, collections, suppliers, customers, and supplier payments. Admin user and default settings will be preserved. Are you sure?')) return;
             if (!confirm('Last chance — really reset everything? This cannot be undone!')) return;
@@ -1884,6 +1955,8 @@
                 api('/settings').then(s => {
                     if (s.shop_name) { shopName = s.shop_name; document.title = 'LedgerPro - ' + shopName; document.getElementById('sidebar-brand').textContent = shopName; document.getElementById('login-brand').textContent = shopName; }
                     if (s.currency_symbol) currencySymbol = s.currency_symbol;
+                    contactPhone = s.contact_phone || ''; contactEmail = s.contact_email || ''; contactAddress = s.contact_address || '';
+                    updateSidebarContact();
                     loadOpeningBalance();
                 });
                 loadDashboard();
