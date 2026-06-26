@@ -106,12 +106,15 @@ router.get('/settings', authenticate, (req, res) => {
 });
 
 router.put('/settings', authenticate, requirePermission('change_settings'), (req, res) => {
-  const { opening_balance, currency_symbol } = req.body;
+  const { opening_balance, currency_symbol, shop_name } = req.body;
   if (opening_balance !== undefined) {
     qRun('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)', ['opening_balance', String(opening_balance)]);
   }
   if (currency_symbol !== undefined) {
     qRun('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)', ['currency_symbol', String(currency_symbol)]);
+  }
+  if (shop_name !== undefined) {
+    qRun('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)', ['shop_name', String(shop_name)]);
   }
   res.json({ success: true });
 });
@@ -626,9 +629,11 @@ router.delete('/admin/clear-data', authenticate, adminOnly, (req, res) => {
   qRun('DELETE FROM customers');
   qRun('DELETE FROM settings');
   qRun("INSERT OR IGNORE INTO settings (key, value) VALUES ('opening_balance', '4300')");
+  qRun("INSERT OR IGNORE INTO settings (key, value) VALUES ('currency_symbol', 'OMR')");
+  qRun("INSERT OR IGNORE INTO settings (key, value) VALUES ('shop_name', 'S.A TELECOM')");
   const hash = require('bcryptjs').hashSync(process.env.ADMIN_PASSWORD || 'admin123', 10);
   qRun("UPDATE users SET password_hash=? WHERE id=1", [hash]);
-  res.json({ success: true, message: 'All data cleared. Admin user preserved with default password. Opening balance reset to Tk 4,300.' });
+  res.json({ success: true, message: 'All data cleared. Admin user preserved with default password. Settings reset to defaults.' });
 });
 
 // ─── Activity Feed ───────────────────────────────────────────────

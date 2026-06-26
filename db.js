@@ -478,6 +478,7 @@ function seedDefaults() {
   if (!srows.length || !srows[0].values.length || srows[0].values[0][0] === 0) {
     db.run('INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)', ['opening_balance', '4300']);
     db.run('INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)', ['currency_symbol', 'OMR']);
+    db.run('INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)', ['shop_name', 'S.A TELECOM']);
   }
 }
 

@@ -197,7 +197,7 @@
                     <div style="width:80px;height:80px;border-radius:24px;margin:0 auto 24px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#3B82F6,#2563EB);">
                         <i class="fa-solid fa-satellite-dish text-4xl text-white"></i>
                     </div>
-                    <h1 style="font-size:36px;font-weight:900;color:#fff;letter-spacing:-0.02em;margin-bottom:8px;">S.A TELECOM</h1>
+                    <h1 style="font-size:36px;font-weight:900;color:#fff;letter-spacing:-0.02em;margin-bottom:8px;" id="login-brand">S.A TELECOM</h1>
                     <p style="font-size:18px;color:#94A3B8;margin-bottom:32px;">Ledger Management System</p>
                     <div class="flex justify-center gap-4 text-white/40 text-sm">
                         <div class="text-center"><i class="fa-solid fa-shield-halved text-2xl block mb-2 text-blue-400"></i>Secure</div>
@@ -246,7 +246,7 @@
                     <div style="width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.1);">
                         <i class="fa-solid fa-satellite-dish text-white text-sm"></i>
                     </div>
-                    <span style="font-size:15px;font-weight:800;color:#fff;letter-spacing:-0.02em;">S.A TELECOM</span>
+                    <span style="font-size:15px;font-weight:800;color:#fff;letter-spacing:-0.02em;" id="sidebar-brand">S.A TELECOM</span>
                 </div>
             </div>
 
@@ -1019,6 +1019,18 @@
                     </div>
                 </div>
 
+                <!-- Shop Name -->
+                <div class="glass-card" style="padding:20px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;">
+                    <div>
+                        <h3 style="font-size:13px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:8px;"><i class="fa-solid fa-shop"></i> Shop Name</h3>
+                        <p style="font-size:12px;color:var(--text-muted);margin:4px 0 0;">Business name shown in the sidebar, login page, and reports.</p>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <input type="text" id="settings-shop-name" class="input-modern" style="width:200px;text-align:center;font-weight:700;" placeholder="Shop Name" maxlength="50">
+                        <button onclick="saveShopName()" class="btn-primary" style="white-space:nowrap;"><i class="fa-solid fa-floppy-disk"></i> Save</button>
+                    </div>
+                </div>
+
                 <!-- Reset All Data -->
                 <div class="glass-card" style="padding:16px 24px;display:flex;align-items:center;justify-content:space-between;background:#FEF2F2;border:1px solid #FECACA;">
                     <div>
@@ -1036,6 +1048,7 @@
         let currentUser = null;
         let userPermissions = [];
         let currencySymbol = 'OMR';
+        let shopName = 'S.A TELECOM';
 
 
         // Dark mode init
@@ -1127,7 +1140,7 @@
                 userPermissions = user.permissions || [];
                 document.getElementById('sidebar-user').textContent = user.display_name || user.username;
                 document.getElementById('sidebar-role').textContent = user.role === 'admin' ? 'Administrator' : 'Staff';
-                api('/settings').then(s => { if (s.currency_symbol) currencySymbol = s.currency_symbol; }).catch(() => {});
+                api('/settings').then(s => { if (s.currency_symbol) currencySymbol = s.currency_symbol; if (s.shop_name) { shopName = s.shop_name; document.title = 'LedgerPro - ' + shopName; document.getElementById('sidebar-brand').textContent = shopName; document.getElementById('login-brand').textContent = shopName; } }).catch(() => {});
                 initApp();
             }).catch(() => logout());
         }
@@ -1682,7 +1695,7 @@
         function exportCSV() {
             const date = document.getElementById('report-date-picker').value || new Date().toISOString().slice(0, 10);
             api('/reports/daily?date=' + date).then(r => {
-                let csv = 'S.A TELECOM - Daily Report (' + date + ')\n\n';
+                let csv = shopName + ' - Daily Report (' + date + ')\n\n';
                 csv += 'Walk-in Sales,' + r.walkinTotal + '\n';
                 csv += 'Market Sales,' + r.marketTotal + '\n\n';
                 csv += 'Main Ledger\n#,Description,Notes,Amount\n';
@@ -1823,6 +1836,8 @@
                 if (el) el.value = s.opening_balance || '';
                 const ce = document.getElementById('settings-currency');
                 if (ce) ce.value = s.currency_symbol || 'OMR';
+                const se = document.getElementById('settings-shop-name');
+                if (se) se.value = s.shop_name || 'S.A TELECOM';
             }).catch(() => {});
         }
 
@@ -1847,12 +1862,30 @@
             }).catch(err => showFeedback(fb, 'Save failed: ' + err.message, 'error'));
         }
 
+        function saveShopName() {
+            const fb = document.getElementById('settings-feedback');
+            const val = document.getElementById('settings-shop-name').value.trim();
+            if (!val) { showFeedback(fb, 'Enter a shop name.', 'error'); return; }
+            api('/settings', { method: 'PUT', body: JSON.stringify({ shop_name: val }) }).then(() => {
+                shopName = val;
+                document.title = 'LedgerPro - ' + val;
+                document.getElementById('sidebar-brand').textContent = val;
+                document.getElementById('login-brand').textContent = val;
+                showFeedback(fb, 'Shop name updated to "' + val + '"!', 'success');
+            }).catch(err => showFeedback(fb, 'Save failed: ' + err.message, 'error'));
+        }
+
         function resetAllData() {
             if (!confirm('⚠️ This will DELETE ALL entries, dues, collections, suppliers, customers, and supplier payments. Admin user and default settings will be preserved. Are you sure?')) return;
             if (!confirm('Last chance — really reset everything? This cannot be undone!')) return;
             const fb = document.getElementById('settings-feedback');
             api('/admin/clear-data', { method: 'DELETE' }).then(r => {
                 showFeedback(fb, r.message, 'success');
+                api('/settings').then(s => {
+                    if (s.shop_name) { shopName = s.shop_name; document.title = 'LedgerPro - ' + shopName; document.getElementById('sidebar-brand').textContent = shopName; document.getElementById('login-brand').textContent = shopName; }
+                    if (s.currency_symbol) currencySymbol = s.currency_symbol;
+                    loadOpeningBalance();
+                });
                 loadDashboard();
                 if (typeof loadSuppliers === 'function') loadSuppliers();
                 if (typeof loadCustomers === 'function') loadCustomers();
