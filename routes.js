@@ -616,10 +616,16 @@ router.post('/backup/import', authenticate, adminOnly, (req, res) => {
 router.delete('/admin/clear-data', authenticate, adminOnly, (req, res) => {
   qRun('DELETE FROM collections');
   qRun('DELETE FROM supplier_pay_records');
+  qRun('DELETE FROM supplier_payments');
   qRun('DELETE FROM entries');
   qRun('DELETE FROM dues');
-  qRun('DELETE FROM supplier_payments');
-  res.json({ success: true, message: 'All data cleared. Users and settings preserved.' });
+  qRun('DELETE FROM suppliers');
+  qRun('DELETE FROM customers');
+  qRun('DELETE FROM settings');
+  qRun("INSERT OR IGNORE INTO settings (key, value) VALUES ('opening_balance', '4300')");
+  const hash = require('bcryptjs').hashSync(process.env.ADMIN_PASSWORD || 'admin123', 10);
+  qRun("UPDATE users SET password_hash=? WHERE id=1", [hash]);
+  res.json({ success: true, message: 'All data cleared. Admin user preserved with default password. Opening balance reset to Tk 4,300.' });
 });
 
 // ─── Activity Feed ───────────────────────────────────────────────

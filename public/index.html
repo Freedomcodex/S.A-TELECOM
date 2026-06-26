@@ -766,6 +766,14 @@
                     <button onclick="createBackup()" class="btn-primary"><i class="fa-solid fa-database"></i> Create Backup Now</button>
                 </div>
 
+                <div class="glass-card" style="padding:16px 24px;display:flex;align-items:center;justify-content:space-between;background:#FEF2F2;border:1px solid #FECACA;">
+                    <div>
+                        <h3 style="font-size:13px;font-weight:700;color:#DC2626;display:flex;align-items:center;gap:8px;"><i class="fa-solid fa-triangle-exclamation" style="color:#DC2626;"></i> Reset All Data</h3>
+                        <p style="font-size:12px;color:var(--text-muted);margin:4px 0 0;">Clears all entries, dues, collections, suppliers, customers, payments. Preserves admin account. Resets opening balance.</p>
+                    </div>
+                    <button onclick="resetAllData()" class="btn-primary" style="background:#DC2626;box-shadow:0 2px 8px rgba(220,38,38,0.3);"><i class="fa-solid fa-broom"></i> Reset All Data</button>
+                </div>
+
                 <div class="glass-card" style="overflow:hidden;">
                     <div style="padding:16px 24px;border-bottom:1px solid var(--border);">
                         <h3 style="font-size:13px;font-weight:700;color:var(--text);">Available Backups</h3>
@@ -1763,6 +1771,18 @@
                 showFeedback(fb, 'Backup created: ' + r.file, 'success');
                 loadBackups();
             }).catch(err => showFeedback(fb, 'Backup failed: ' + err.message, 'error'));
+        }
+
+        function resetAllData() {
+            if (!confirm('⚠️ This will DELETE ALL entries, dues, collections, suppliers, customers, and supplier payments. Admin user and default settings will be preserved. Are you sure?')) return;
+            if (!confirm('Last chance — really reset everything? This cannot be undone!')) return;
+            const fb = document.getElementById('backup-feedback');
+            api('/admin/clear-data', { method: 'DELETE' }).then(r => {
+                showFeedback(fb, r.message, 'success');
+                loadDashboard();
+                if (typeof loadSuppliers === 'function') loadSuppliers();
+                if (typeof loadCustomers === 'function') loadCustomers();
+            }).catch(err => showFeedback(fb, 'Reset failed: ' + err.message, 'error'));
         }
 
         function restoreBackup(filename) {
