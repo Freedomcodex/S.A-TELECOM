@@ -774,6 +774,17 @@
                     <button onclick="resetAllData()" class="btn-primary" style="background:#DC2626;box-shadow:0 2px 8px rgba(220,38,38,0.3);" id="reset-data-btn"><i class="fa-solid fa-broom"></i> Reset All Data</button>
                 </div>
 
+                <div class="glass-card" style="padding:20px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;" id="settings-ob-section">
+                    <div>
+                        <h3 style="font-size:13px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:8px;"><i class="fa-solid fa-scale-balanced"></i> Opening Balance</h3>
+                        <p style="font-size:12px;color:var(--text-muted);margin:4px 0 0;">Set the starting balance used in Net Ledger calculation.</p>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <input type="number" id="settings-opening" class="input-modern" style="width:160px;text-align:center;font-weight:700;" placeholder="Amount">
+                        <button onclick="saveOpeningBalance()" class="btn-primary" style="white-space:nowrap;"><i class="fa-solid fa-floppy-disk"></i> Save</button>
+                    </div>
+                </div>
+
                 <div class="glass-card" style="overflow:hidden;">
                     <div style="padding:16px 24px;border-bottom:1px solid var(--border);">
                         <h3 style="font-size:13px;font-weight:700;color:var(--text);">Available Backups</h3>
@@ -1113,7 +1124,7 @@
             if (tabId === 'market-tab') loadMarketForm();
             if (tabId === 'report-tab') loadReport();
             if (tabId === 'dues-tab') { loadDues(); loadSupplierPayments(); }
-            if (tabId === 'backup-tab') { checkHealth(); loadBackups(); }
+            if (tabId === 'backup-tab') { checkHealth(); loadBackups(); loadOpeningBalance(); }
             if (tabId === 'suppliers-tab') loadSuppliers();
             if (tabId === 'customers-tab') loadCustomers();
             if (tabId === 'users-tab') loadUsers();
@@ -1141,6 +1152,8 @@
             if (backupLink) backupLink.style.display = hasPermission('backup_recovery') || isAdmin ? 'flex' : 'none';
             const resetSection = document.getElementById('reset-data-section');
             if (resetSection) resetSection.style.display = isAdmin ? 'flex' : 'none';
+            const obSection = document.getElementById('settings-ob-section');
+            if (obSection) obSection.style.display = isAdmin ? 'flex' : 'none';
             if (!hasPermission('view_dashboard') && !isAdmin) {
                 switchTab('entry-tab', null);
                 const dashLink = document.querySelector('[onclick*="dashboard-tab"]');
@@ -1773,6 +1786,23 @@
                 showFeedback(fb, 'Backup created: ' + r.file, 'success');
                 loadBackups();
             }).catch(err => showFeedback(fb, 'Backup failed: ' + err.message, 'error'));
+        }
+
+        function loadOpeningBalance() {
+            api('/settings').then(s => {
+                const el = document.getElementById('settings-opening');
+                if (el) el.value = s.opening_balance || '';
+            }).catch(() => {});
+        }
+
+        function saveOpeningBalance() {
+            const fb = document.getElementById('backup-feedback');
+            const val = document.getElementById('settings-opening').value.trim();
+            if (!val || isNaN(val)) { showFeedback(fb, 'Enter a valid number.', 'error'); return; }
+            api('/settings', { method: 'PUT', body: JSON.stringify({ opening_balance: val }) }).then(() => {
+                showFeedback(fb, 'Opening balance updated to Tk ' + Number(val).toLocaleString() + '!', 'success');
+                loadDashboard();
+            }).catch(err => showFeedback(fb, 'Save failed: ' + err.message, 'error'));
         }
 
         function resetAllData() {
