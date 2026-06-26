@@ -38,7 +38,6 @@ initDb().then(() => {
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`S.A TELECOM Ledger System running at http://localhost:${PORT}`);
     console.log(`Access from other devices: http://<your-ip>:${PORT}`);
-    console.log('Default login: admin / admin123');
   });
 }).catch(err => {
   console.error('Failed to initialize database:', err);
