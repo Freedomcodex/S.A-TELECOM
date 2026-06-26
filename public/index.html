@@ -296,6 +296,10 @@
                     <div class="sidebar-icon"><i class="fa-solid fa-users"></i></div>
                     <span>Manage Users</span>
                 </a>
+                <a class="sidebar-link" id="nav-settings" onclick="switchTab('settings-tab', this)" style="display:none;margin-bottom:2px;">
+                    <div class="sidebar-icon"><i class="fa-solid fa-gear"></i></div>
+                    <span>Settings</span>
+                </a>
             </nav>
 
             <!-- Bottom -->
@@ -766,25 +770,6 @@
                     <button onclick="createBackup()" class="btn-primary"><i class="fa-solid fa-database"></i> Create Backup Now</button>
                 </div>
 
-                <div class="glass-card" style="padding:16px 24px;display:flex;align-items:center;justify-content:space-between;background:#FEF2F2;border:1px solid #FECACA;" id="reset-data-section">
-                    <div>
-                        <h3 style="font-size:13px;font-weight:700;color:#DC2626;display:flex;align-items:center;gap:8px;"><i class="fa-solid fa-triangle-exclamation" style="color:#DC2626;"></i> Reset All Data</h3>
-                        <p style="font-size:12px;color:var(--text-muted);margin:4px 0 0;">Clears all entries, dues, collections, suppliers, customers, payments. Preserves admin account. Resets opening balance.</p>
-                    </div>
-                    <button onclick="resetAllData()" class="btn-primary" style="background:#DC2626;box-shadow:0 2px 8px rgba(220,38,38,0.3);" id="reset-data-btn"><i class="fa-solid fa-broom"></i> Reset All Data</button>
-                </div>
-
-                <div class="glass-card" style="padding:20px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;" id="settings-ob-section">
-                    <div>
-                        <h3 style="font-size:13px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:8px;"><i class="fa-solid fa-scale-balanced"></i> Opening Balance</h3>
-                        <p style="font-size:12px;color:var(--text-muted);margin:4px 0 0;">Set the starting balance used in Net Ledger calculation.</p>
-                    </div>
-                    <div style="display:flex;align-items:center;gap:8px;">
-                        <input type="number" id="settings-opening" class="input-modern" style="width:160px;text-align:center;font-weight:700;" placeholder="Amount">
-                        <button onclick="saveOpeningBalance()" class="btn-primary" style="white-space:nowrap;"><i class="fa-solid fa-floppy-disk"></i> Save</button>
-                    </div>
-                </div>
-
                 <div class="glass-card" style="overflow:hidden;">
                     <div style="padding:16px 24px;border-bottom:1px solid var(--border);">
                         <h3 style="font-size:13px;font-weight:700;color:var(--text);">Available Backups</h3>
@@ -1000,6 +985,37 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Settings Tab -->
+            <div id="settings-tab" class="tab-content hidden fade-in" style="display:flex;flex-direction:column;gap:20px;">
+                <div>
+                    <h1 class="page-title">Settings</h1>
+                    <p class="page-subtitle">Configure system settings (admin only)</p>
+                </div>
+
+                <p id="settings-feedback" class="hidden" style="font-size:13px;font-weight:500;padding:10px 16px;border-radius:10px;"></p>
+
+                <!-- Opening Balance -->
+                <div class="glass-card" style="padding:20px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;">
+                    <div>
+                        <h3 style="font-size:13px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:8px;"><i class="fa-solid fa-scale-balanced"></i> Opening Balance</h3>
+                        <p style="font-size:12px;color:var(--text-muted);margin:4px 0 0;">Set the starting balance used in Net Ledger calculation.</p>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <input type="number" id="settings-opening" class="input-modern" style="width:160px;text-align:center;font-weight:700;" placeholder="Amount">
+                        <button onclick="saveOpeningBalance()" class="btn-primary" style="white-space:nowrap;"><i class="fa-solid fa-floppy-disk"></i> Save</button>
+                    </div>
+                </div>
+
+                <!-- Reset All Data -->
+                <div class="glass-card" style="padding:16px 24px;display:flex;align-items:center;justify-content:space-between;background:#FEF2F2;border:1px solid #FECACA;">
+                    <div>
+                        <h3 style="font-size:13px;font-weight:700;color:#DC2626;display:flex;align-items:center;gap:8px;"><i class="fa-solid fa-triangle-exclamation" style="color:#DC2626;"></i> Reset All Data</h3>
+                        <p style="font-size:12px;color:var(--text-muted);margin:4px 0 0;">Clears all entries, dues, collections, suppliers, customers, payments. Preserves admin account. Resets opening balance to Tk 4,300.</p>
+                    </div>
+                    <button onclick="resetAllData()" class="btn-primary" style="background:#DC2626;box-shadow:0 2px 8px rgba(220,38,38,0.3);"><i class="fa-solid fa-broom"></i> Reset All Data</button>
+                </div>
+            </div>
         </main>
     </div>
 
@@ -1124,7 +1140,8 @@
             if (tabId === 'market-tab') loadMarketForm();
             if (tabId === 'report-tab') loadReport();
             if (tabId === 'dues-tab') { loadDues(); loadSupplierPayments(); }
-            if (tabId === 'backup-tab') { checkHealth(); loadBackups(); loadOpeningBalance(); }
+            if (tabId === 'settings-tab') loadOpeningBalance();
+            if (tabId === 'backup-tab') { checkHealth(); loadBackups(); }
             if (tabId === 'suppliers-tab') loadSuppliers();
             if (tabId === 'customers-tab') loadCustomers();
             if (tabId === 'users-tab') loadUsers();
@@ -1150,10 +1167,8 @@
             if (custNav) custNav.style.display = hasPermission('manage_customers') || isAdmin ? 'flex' : 'none';
             const backupLink = document.querySelector('[onclick*="backup-tab"]');
             if (backupLink) backupLink.style.display = hasPermission('backup_recovery') || isAdmin ? 'flex' : 'none';
-            const resetSection = document.getElementById('reset-data-section');
-            if (resetSection) resetSection.style.display = isAdmin ? 'flex' : 'none';
-            const obSection = document.getElementById('settings-ob-section');
-            if (obSection) obSection.style.display = isAdmin ? 'flex' : 'none';
+            const settingsNav = document.getElementById('nav-settings');
+            if (settingsNav) settingsNav.style.display = isAdmin ? 'flex' : 'none';
             if (!hasPermission('view_dashboard') && !isAdmin) {
                 switchTab('entry-tab', null);
                 const dashLink = document.querySelector('[onclick*="dashboard-tab"]');
@@ -1796,7 +1811,7 @@
         }
 
         function saveOpeningBalance() {
-            const fb = document.getElementById('backup-feedback');
+            const fb = document.getElementById('settings-feedback');
             const val = document.getElementById('settings-opening').value.trim();
             if (!val || isNaN(val)) { showFeedback(fb, 'Enter a valid number.', 'error'); return; }
             api('/settings', { method: 'PUT', body: JSON.stringify({ opening_balance: val }) }).then(() => {
@@ -1808,7 +1823,7 @@
         function resetAllData() {
             if (!confirm('⚠️ This will DELETE ALL entries, dues, collections, suppliers, customers, and supplier payments. Admin user and default settings will be preserved. Are you sure?')) return;
             if (!confirm('Last chance — really reset everything? This cannot be undone!')) return;
-            const fb = document.getElementById('backup-feedback');
+            const fb = document.getElementById('settings-feedback');
             api('/admin/clear-data', { method: 'DELETE' }).then(r => {
                 showFeedback(fb, r.message, 'success');
                 loadDashboard();
