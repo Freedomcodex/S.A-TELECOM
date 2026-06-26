@@ -282,6 +282,7 @@ async function initDb() {
   createSchema();
   runMigrations();
   seedDefaults();
+  applyEnvOverrides();
   saveDb();
   backupDb('startup');
   startAutoBackup();
@@ -478,10 +479,24 @@ function seedDefaults() {
   if (!srows.length || !srows[0].values.length || srows[0].values[0][0] === 0) {
     db.run('INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)', ['opening_balance', '4300']);
     db.run('INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)', ['currency_symbol', 'OMR']);
-    db.run('INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)', ['shop_name', 'S.A TELECOM']);
-    db.run('INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)', ['contact_phone', '']);
-    db.run('INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)', ['contact_email', '']);
-    db.run('INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)', ['contact_address', '']);
+    db.run('INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)', ['shop_name', process.env.SHOP_NAME || 'S.A TELECOM']);
+    db.run('INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)', ['contact_phone', process.env.CONTACT_PHONE || '']);
+    db.run('INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)', ['contact_email', process.env.CONTACT_EMAIL || '']);
+    db.run('INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)', ['contact_address', process.env.CONTACT_ADDRESS || '']);
+  }
+}
+
+function applyEnvOverrides() {
+  const envMap = {
+    'SHOP_NAME': 'shop_name',
+    'CONTACT_PHONE': 'contact_phone',
+    'CONTACT_EMAIL': 'contact_email',
+    'CONTACT_ADDRESS': 'contact_address'
+  };
+  for (const [envKey, settingKey] of Object.entries(envMap)) {
+    if (process.env[envKey]) {
+      db.run('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)', [settingKey, process.env[envKey]]);
+    }
   }
 }
 
