@@ -106,9 +106,12 @@ router.get('/settings', authenticate, (req, res) => {
 });
 
 router.put('/settings', authenticate, requirePermission('change_settings'), (req, res) => {
-  const { opening_balance } = req.body;
+  const { opening_balance, currency_symbol } = req.body;
   if (opening_balance !== undefined) {
     qRun('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)', ['opening_balance', String(opening_balance)]);
+  }
+  if (currency_symbol !== undefined) {
+    qRun('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)', ['currency_symbol', String(currency_symbol)]);
   }
   res.json({ success: true });
 });
