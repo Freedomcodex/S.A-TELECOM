@@ -129,7 +129,7 @@ router.get('/entries', authenticate, (req, res) => {
 });
 
 router.post('/entries', authenticate, requirePermission('add_sale'), (req, res) => {
-  let { entry_date, description, notes, amount, entry_type, customer_type, client_name } = req.body;
+  let { entry_date, description, notes, amount, entry_type, customer_type, client_name, customer_id } = req.body;
 
   if (!description || !amount || !entry_type) {
     return res.status(400).json({ error: 'Description, amount, and entry_type required' });
@@ -154,8 +154,8 @@ router.post('/entries', authenticate, requirePermission('add_sale'), (req, res) 
   }
 
   qRun(
-    'INSERT INTO entries (entry_date, description, notes, amount, entry_type, customer_type, client_name, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-    [entry_date, description, notes || '', amount, entry_type, customer_type, client_name || '', req.user.id]
+    'INSERT INTO entries (entry_date, description, notes, amount, entry_type, customer_type, client_name, customer_id, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    [entry_date, description, notes || '', amount, entry_type, customer_type, client_name || '', customer_id || null, req.user.id]
   );
 
   const entry = getOne('SELECT * FROM entries WHERE id = ?', [maxId('entries')]);
@@ -169,7 +169,7 @@ router.delete('/entries/:id', authenticate, requirePermission('delete_entries'),
 });
 
 router.post('/market-sale', authenticate, requirePermission('add_sale'), (req, res) => {
-  let { entry_date, client_name, description, notes, amount, paid_now } = req.body;
+  let { entry_date, customer_id, client_name, description, notes, amount, paid_now } = req.body;
 
   if (!client_name || !description || !amount) {
     return res.status(400).json({ error: 'Client name, description, and amount required' });
@@ -190,10 +190,10 @@ router.post('/market-sale', authenticate, requirePermission('add_sale'), (req, r
   }
 
   if (paid_now > 0) {
-    qRun(
-      'INSERT INTO entries (entry_date, description, notes, amount, entry_type, customer_type, client_name, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-      [entry_date, client_name + ' (Market Sale)', notes || 'Market Sale', paid_now, 'main', 'market', client_name, req.user.id]
-    );
+      qRun(
+        'INSERT INTO entries (entry_date, description, notes, amount, entry_type, customer_type, client_name, customer_id, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        [entry_date, client_name + ' (Market Sale)', notes || 'Market Sale', paid_now, 'main', 'market', client_name, customer_id || null, req.user.id]
+      );
   }
 
   const due_amount = roundAmount(amount - paid_now);
@@ -340,6 +340,52 @@ router.get('/suppliers/select', authenticate, (req, res) => {
   res.json(getAll('SELECT id, name FROM suppliers ORDER BY name ASC'));
 });
 
+// ─── Customers CRUD ────────────────────────────────────────────
+
+router.get('/customers', authenticate, (req, res) => {
+  const customers = getAll('SELECT c.*, (SELECT COUNT(*) FROM entries e WHERE e.customer_id = c.id) as total_sales FROM customers c ORDER BY c.name ASC');
+  res.json(customers);
+});
+
+router.post('/customers', authenticate, (req, res) => {
+  const { name, phone, address, email, note } = req.body;
+  if (!name) return res.status(400).json({ error: 'Customer name required' });
+  const existing = getOne('SELECT id FROM customers WHERE name = ?', [name]);
+  if (existing) return res.status(409).json({ error: 'Customer name already exists' });
+  qRun('INSERT INTO customers (name, phone, address, email, note, created_by) VALUES (?, ?, ?, ?, ?, ?)',
+    [name, phone || '', address || '', email || '', note || '', req.user.id]);
+  const customer = getOne('SELECT * FROM customers WHERE id = ?', [maxId('customers')]);
+  res.status(201).json(customer);
+});
+
+router.put('/customers/:id', authenticate, (req, res) => {
+  const { name, phone, address, email, note } = req.body;
+  const cid = parseInt(req.params.id);
+  const customer = getOne('SELECT * FROM customers WHERE id = ?', [cid]);
+  if (!customer) return res.status(404).json({ error: 'Customer not found' });
+  qRun('UPDATE customers SET name=?, phone=?, address=?, email=?, note=? WHERE id=?',
+    [name || customer.name, phone !== undefined ? phone : customer.phone,
+     address !== undefined ? address : customer.address,
+     email !== undefined ? email : customer.email,
+     note !== undefined ? note : customer.note, cid]);
+  res.json(getOne('SELECT * FROM customers WHERE id = ?', [cid]));
+});
+
+router.delete('/customers/:id', authenticate, adminOnly, (req, res) => {
+  const cid = parseInt(req.params.id);
+  const entries = getOne('SELECT COUNT(*) as cnt FROM entries WHERE customer_id = ?', [cid]);
+  if (entries && entries.cnt > 0) {
+    return res.status(400).json({ error: 'Cannot delete customer with existing entries. Remove entries first.' });
+  }
+  const result = qRun('DELETE FROM customers WHERE id = ?', [cid]);
+  if (result.changes === 0) return res.status(404).json({ error: 'Customer not found' });
+  res.json({ success: true });
+});
+
+router.get('/customers/select', authenticate, (req, res) => {
+  res.json(getAll('SELECT id, name, phone FROM customers ORDER BY name ASC'));
+});
+
 // ─── Supplier Payments ──────────────────────────────────────────
 
 router.get('/supplier-payments', authenticate, (req, res) => {
@@ -439,6 +485,7 @@ router.get('/dashboard/summary', authenticate, (req, res) => {
   );
 
   const totalSuppliers = getOne('SELECT COUNT(*) as cnt FROM suppliers');
+  const totalCustomers = getOne('SELECT COUNT(*) as cnt FROM customers');
 
   res.json({
     openingBalance: roundAmount(openingBalance),
@@ -447,7 +494,8 @@ router.get('/dashboard/summary', authenticate, (req, res) => {
     netLedgerTotal: roundAmount(openingBalance + mainTotal - cashOutTotal),
     totalDues: roundAmount(totalDues),
     totalCollectedToday: roundAmount(collectedRow.total),
-    totalSuppliers: totalSuppliers ? totalSuppliers.cnt : 0
+    totalSuppliers: totalSuppliers ? totalSuppliers.cnt : 0,
+    totalCustomers: totalCustomers ? totalCustomers.cnt : 0
   });
 });
 
@@ -632,6 +680,19 @@ router.get('/activity', authenticate, (req, res) => {
       action: 'supplier_registered',
       message: `${s.user_name || 'User'} registered supplier: ${s.name}`,
       created_at: s.created_at
+    });
+  });
+
+  const recentCustomerRegistrations = getAll(`
+    SELECT c.name, c.created_at, u.display_name as user_name
+    FROM customers c LEFT JOIN users u ON c.created_by = u.id
+    ORDER BY c.id DESC LIMIT 10
+  `);
+  recentCustomerRegistrations.forEach(c => {
+    items.push({
+      action: 'customer_registered',
+      message: `${c.user_name || 'User'} registered customer: ${c.name}`,
+      created_at: c.created_at
     });
   });
 

@@ -284,6 +284,10 @@
                     <div class="sidebar-icon"><i class="fa-solid fa-truck"></i></div>
                     <span>Suppliers</span>
                 </a>
+                <a class="sidebar-link" onclick="switchTab('customers-tab', this)" style="margin-bottom:2px;" id="nav-customers">
+                    <div class="sidebar-icon"><i class="fa-solid fa-users-gear"></i></div>
+                    <span>Customers</span>
+                </a>
                 <a class="sidebar-link" onclick="switchTab('backup-tab', this)" style="margin-bottom:2px;">
                     <div class="sidebar-icon"><i class="fa-solid fa-database"></i></div>
                     <span>Backup & Recovery</span>
@@ -396,6 +400,13 @@
                         </div>
                         <p class="kpi-value" style="color:#2563EB;" id="dash-total-suppliers">0</p>
                     </div>
+                    <div class="glass-card" style="padding:20px;cursor:pointer;" onclick="showKpiDetail('customers')">
+                        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+                            <span class="kpi-label">Total Customers</span>
+                            <div class="stat-icon" style="background:#F5F3FF;"><i class="fa-solid fa-users-gear" style="color:#7C3AED"></i></div>
+                        </div>
+                        <p class="kpi-value" style="color:#7C3AED;" id="dash-total-customers">0</p>
+                    </div>
                 </div>
 
                 <!-- KPI Detail Panel -->
@@ -434,7 +445,15 @@
                                     <input type="number" id="entry-amount" placeholder="0.00" step="0.01" min="1" class="input-modern" required>
                                 </div>
                             </div>
-                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;">
+                                <div>
+                                    <label style="display:block;font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;">Customer / Party</label>
+                                    <select id="entry-customer-select" class="select-modern" onchange="var opt=this.options[this.selectedIndex];document.getElementById('entry-client-name').value=opt.value;document.getElementById('entry-customer-id').value=opt.value?opt.getAttribute('data-id')||'':'';if(opt.value)document.getElementById('entry-type').value='main';">
+                                        <option value="">Walk-in / None</option>
+                                    </select>
+                                    <input type="text" id="entry-client-name" placeholder="Or type party name" class="input-modern" style="margin-top:6px;" oninput="if(this.value){document.getElementById('entry-customer-select').value='';document.getElementById('entry-customer-id').value='';}">
+                                    <input type="hidden" id="entry-customer-id" value="">
+                                </div>
                                 <div>
                                     <label style="display:block;font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;">Notes</label>
                                     <input type="text" id="entry-notes" placeholder="Extra note if any" class="input-modern">
@@ -471,8 +490,12 @@
                                 <input type="date" id="market-date" class="input-modern">
                             </div>
                             <div>
-                                <label style="display:block;font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;">Shop / Technician Name</label>
-                                <input type="text" id="market-client" placeholder="e.g. Rahim Store" required class="input-modern">
+                                <label style="display:block;font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;">Customer / Party</label>
+                                <select id="market-customer-select" class="select-modern" onchange="var opt=this.options[this.selectedIndex];document.getElementById('market-client').value=opt.value;document.getElementById('market-customer-id').value=opt.value?opt.getAttribute('data-id')||'':'';">
+                                    <option value="">-- Select or type name --</option>
+                                </select>
+                                <input type="text" id="market-client" placeholder="Or type new name" class="input-modern" style="margin-top:6px;" oninput="if(this.value){document.getElementById('market-customer-select').value='';document.getElementById('market-customer-id').value='';}">
+                                <input type="hidden" id="market-customer-id" value="">
                             </div>
                         </div>
                         <div style="border-top:1px solid var(--border);padding-top:20px;">
@@ -821,6 +844,61 @@
                 </div>
             </div>
 
+            <!-- Customers Tab -->
+            <div id="customers-tab" class="tab-content hidden fade-in" style="display:flex;flex-direction:column;gap:20px;">
+                <div style="display:flex;align-items:center;justify-content:space-between;">
+                    <div>
+                        <h1 class="page-title">Customers</h1>
+                        <p class="page-subtitle">Register and manage customer / party accounts</p>
+                    </div>
+                    <button onclick="showAddCustomer()" class="btn-primary"><i class="fa-solid fa-users-gear"></i> Add Customer</button>
+                </div>
+
+                <!-- Customer Form -->
+                <div id="customer-form-card" class="glass-card hidden" style="padding:24px;">
+                    <h3 style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:16px;" id="customer-form-title">Register New Customer</h3>
+                    <p id="customer-feedback" class="hidden" style="font-size:13px;font-weight:500;padding:10px 16px;border-radius:10px;margin-bottom:16px;"></p>
+                    <form id="customer-form" onsubmit="event.preventDefault(); saveCustomer();" style="display:flex;flex-direction:column;gap:16px;">
+                        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;">
+                            <div>
+                                <label style="display:block;font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;">Customer / Party Name *</label>
+                                <input type="text" id="cust-name" class="input-modern" placeholder="e.g. Rahim Store" required>
+                            </div>
+                            <div>
+                                <label style="display:block;font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;">Phone</label>
+                                <input type="text" id="cust-phone" class="input-modern" placeholder="e.g. 01XXXXXXXXX">
+                            </div>
+                            <div>
+                                <label style="display:block;font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;">Email</label>
+                                <input type="email" id="cust-email" class="input-modern" placeholder="customer@example.com">
+                            </div>
+                            <div>
+                                <label style="display:block;font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;">Address</label>
+                                <input type="text" id="cust-address" class="input-modern" placeholder="e.g. Shop 12, Market Road">
+                            </div>
+                            <div>
+                                <label style="display:block;font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;">Note</label>
+                                <input type="text" id="cust-note" class="input-modern" placeholder="Remarks">
+                            </div>
+                        </div>
+                        <div style="display:flex;justify-content:flex-end;gap:12px;">
+                            <button type="button" class="btn-secondary" onclick="hideCustomerForm()">Cancel</button>
+                            <button type="submit" id="cust-submit-btn" class="btn-primary"><i class="fa-solid fa-check"></i> Save Customer</button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Customers Table -->
+                <div class="glass-card" style="overflow:hidden;">
+                    <div style="overflow-x:auto;">
+                        <table class="table-modern" style="width:100%;">
+                            <thead><tr><th>Customer / Party</th><th>Contact</th><th>Address</th><th>Total Sales</th><th style="text-align:center;">Actions</th></tr></thead>
+                            <tbody id="customers-table-body"><tr><td colspan="5" style="text-align:center;color:var(--text-muted);">Loading...</td></tr></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
             <!-- Users Tab -->
             <div id="users-tab" class="tab-content hidden fade-in" style="display:flex;flex-direction:column;gap:20px;">
                 <div style="display:flex;align-items:center;justify-content:space-between;">
@@ -1029,6 +1107,7 @@
             if (tabId === 'dues-tab') { loadDues(); loadSupplierPayments(); }
             if (tabId === 'backup-tab') { checkHealth(); loadBackups(); }
             if (tabId === 'suppliers-tab') loadSuppliers();
+            if (tabId === 'customers-tab') loadCustomers();
             if (tabId === 'users-tab') loadUsers();
         }
 
@@ -1048,6 +1127,8 @@
             document.getElementById('nav-users').style.display = isAdmin ? 'flex' : 'none';
             const supNav = document.getElementById('nav-suppliers');
             if (supNav) supNav.style.display = hasPermission('manage_suppliers') || isAdmin ? 'flex' : 'none';
+            const custNav = document.getElementById('nav-customers');
+            if (custNav) custNav.style.display = hasPermission('manage_customers') || isAdmin ? 'flex' : 'none';
             const backupLink = document.querySelector('[onclick*="backup-tab"]');
             if (backupLink) backupLink.style.display = hasPermission('backup_recovery') || isAdmin ? 'flex' : 'none';
             if (!hasPermission('view_dashboard') && !isAdmin) {
@@ -1077,6 +1158,7 @@
                 document.getElementById('dash-total-dues').textContent = 'Tk ' + (data.totalDues||0).toLocaleString();
                 document.getElementById('dash-total-collected').textContent = 'Tk ' + (data.totalCollectedToday||0).toLocaleString();
                 document.getElementById('dash-total-suppliers').textContent = (data.totalSuppliers||0).toLocaleString();
+                document.getElementById('dash-total-customers').textContent = (data.totalCustomers||0).toLocaleString();
             }).catch(() => {});
 
             // Activity feed
@@ -1087,7 +1169,7 @@
                     return;
                 }
                 feed.innerHTML = items.slice(0, 15).map((a,i) => {
-                    const icons = { entry_added:'fa-circle-plus text-blue-500', due_added:'fa-exclamation-circle text-amber-500', due_collected:'fa-money-bill-wave text-green-500', supplier_added:'fa-truck text-red-500', supplier_paid:'fa-check-circle text-green-500', login:'fa-right-to-bracket text-purple-500' };
+                    const icons = { entry_added:'fa-circle-plus text-blue-500', due_added:'fa-exclamation-circle text-amber-500', due_collected:'fa-money-bill-wave text-green-500', supplier_added:'fa-truck text-red-500', supplier_paid:'fa-check-circle text-green-500', supplier_registered:'fa-truck text-blue-500', customer_registered:'fa-users-gear text-purple-500', login:'fa-right-to-bracket text-purple-500' };
                     const icon = icons[a.action] || 'fa-circle text-gray-400';
                     const dt = a.created_at ? new Date(a.created_at) : new Date();
                     const time = dt.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
@@ -1112,17 +1194,23 @@
             api('/settings').then(s => {
                 document.getElementById('entry-opening').value = 'Tk ' + (parseFloat(s.opening_balance) || 0).toLocaleString();
             }).catch(() => {});
+            loadCustomerSelects();
         }
 
         function submitEntry() {
             const btn = document.getElementById('entry-submit-btn');
             const fb = document.getElementById('entry-feedback');
+            const client_name = document.getElementById('entry-client-name').value.trim() || null;
+            const customer_id = document.getElementById('entry-customer-id').value || null;
             const data = {
                 entry_date: document.getElementById('entry-date').value,
                 description: document.getElementById('entry-desc').value.trim(),
                 notes: document.getElementById('entry-notes').value.trim(),
                 amount: parseFloat(document.getElementById('entry-amount').value),
-                entry_type: document.getElementById('entry-type').value
+                entry_type: document.getElementById('entry-type').value,
+                customer_type: client_name ? 'market' : 'walkin',
+                client_name,
+                customer_id
             };
             if (!data.description || !data.amount) { showFeedback(fb, 'Please fill in description and amount.', 'error'); return; }
             btn.disabled = true;
@@ -1314,6 +1402,21 @@
                             </div>
                             ${btnClose()}`;
                     }).catch(() => panel.innerHTML = errorCard());
+                },
+                customers: () => {
+                    api('/customers').then(customers => {
+                        panel.innerHTML = `
+                            <div class="glass-card" style="overflow:hidden;">
+                                <div style="padding:16px 24px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:#F5F3FF;">
+                                    <div><h3 style="font-size:14px;font-weight:700;color:#7C3AED;margin:0;">All Customers</h3><p style="font-size:12px;color:var(--text-muted);margin:4px 0 0;">${customers.length} registered customer(s)</p></div>
+                                    <span style="font-size:20px;font-weight:800;color:#7C3AED;">${customers.length}</span>
+                                </div>
+                                ${customers.length === 0
+                                    ? '<div style="padding:32px;text-align:center;color:var(--text-muted);">No customers registered.</div>'
+                                    : `<div style="overflow-x:auto;max-height:400px;overflow-y:auto;"><table class="table-modern" style="width:100%;"><thead><tr><th>Name</th><th>Phone</th><th>Address</th><th style="text-align:right;">Sales</th></tr></thead><tbody>${customers.map(c => `<tr><td style="font-weight:600;">${escapeHtml(c.name)}</td><td>${escapeHtml(c.phone)||'-'}</td><td style="font-size:12px;color:var(--text-muted);">${escapeHtml(c.address)||'-'}</td><td style="text-align:right;font-weight:700;color:#7C3AED;">${c.total_sales||0}</td></tr>`).join('')}</tbody></table></div>`}
+                            </div>
+                            ${btnClose()}`;
+                    }).catch(() => panel.innerHTML = errorCard());
                 }
             };
 
@@ -1337,6 +1440,10 @@
         function loadMarketForm() {
             document.getElementById('market-date').value = new Date().toISOString().slice(0, 10);
             document.getElementById('market-due-display').textContent = 'Tk 0';
+            api('/customers/select').then(customers => {
+                const sel = document.getElementById('market-customer-select');
+                sel.innerHTML = '<option value="">-- Select or type name --</option>' + customers.map(c => `<option value="${escapeHtml(c.name)}" data-id="${c.id}">${escapeHtml(c.name)}${c.phone?' ('+escapeHtml(c.phone)+')':''}</option>`).join('');
+            }).catch(() => {});
         }
 
         function calcMarketDue() {
@@ -1353,6 +1460,7 @@
             const fb = document.getElementById('market-feedback');
             const data = {
                 entry_date: document.getElementById('market-date').value,
+                customer_id: document.getElementById('market-customer-id').value || null,
                 client_name: document.getElementById('market-client').value.trim(),
                 description: document.getElementById('market-desc').value.trim(),
                 notes: document.getElementById('market-notes').value.trim(),
@@ -1805,6 +1913,108 @@
             api('/suppliers/' + id, { method: 'DELETE' }).then(() => {
                 loadSuppliers();
                 loadDashboard();
+            }).catch(err => alert(err.message));
+        }
+
+        // ─── Customers ──────────────────────────────────────────
+        let editingCustomerId = null;
+
+        function loadCustomers() {
+            api('/customers').then(customers => {
+                const tbody = document.getElementById('customers-table-body');
+                if (customers.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-muted);">No customers registered.</td></tr>';
+                    return;
+                }
+                tbody.innerHTML = customers.map(c =>
+                    `<tr>
+                        <td><div><p style="font-weight:600;">${escapeHtml(c.name)}</p><p style="font-size:11px;color:var(--text-muted);">${escapeHtml(c.note)||''}</p></div></td>
+                        <td style="font-size:12px;">${escapeHtml(c.phone)||'-'}<br><span style="color:var(--text-muted);">${escapeHtml(c.email)||''}</span></td>
+                        <td style="font-size:12px;color:var(--text-muted);">${escapeHtml(c.address)||'-'}</td>
+                        <td style="font-weight:600;color:#7C3AED;">${c.total_sales||0} sale(s)</td>
+                        <td style="text-align:center;">
+                            <button onclick="editCustomer(${c.id})" style="color:#2563EB;background:none;border:none;cursor:pointer;margin-right:8px;font-size:14px;" title="Edit"><i class="fa-solid fa-pen"></i></button>
+                            <button onclick="deleteCustomer(${c.id},'${escapeHtml(c.name)}')" style="color:#EF4444;background:none;border:none;cursor:pointer;font-size:14px;" title="Delete"><i class="fa-solid fa-trash"></i></button>
+                        </td>
+                    </tr>`
+                ).join('');
+            }).catch(() => {});
+        }
+
+        function loadCustomerSelects() {
+            api('/customers/select').then(customers => {
+                const opts = '<option value="">Walk-in / None</option>' + customers.map(c => `<option value="${escapeHtml(c.name)}" data-id="${c.id}">${escapeHtml(c.name)}${c.phone?' ('+escapeHtml(c.phone)+')':''}</option>`).join('');
+                const sel = document.getElementById('entry-customer-select');
+                if (sel) sel.innerHTML = opts;
+            }).catch(() => {});
+        }
+
+        function showAddCustomer() {
+            editingCustomerId = null;
+            document.getElementById('customer-form-title').textContent = 'Register New Customer';
+            document.getElementById('cust-name').value = '';
+            document.getElementById('cust-phone').value = '';
+            document.getElementById('cust-email').value = '';
+            document.getElementById('cust-address').value = '';
+            document.getElementById('cust-note').value = '';
+            document.getElementById('customer-form-card').classList.remove('hidden');
+        }
+
+        function hideCustomerForm() {
+            document.getElementById('customer-form-card').classList.add('hidden');
+            editingCustomerId = null;
+        }
+
+        function saveCustomer() {
+            const fb = document.getElementById('customer-feedback');
+            const name = document.getElementById('cust-name').value.trim();
+            const phone = document.getElementById('cust-phone').value.trim();
+            const email = document.getElementById('cust-email').value.trim();
+            const address = document.getElementById('cust-address').value.trim();
+            const note = document.getElementById('cust-note').value.trim();
+            if (!name) { showFeedback(fb, 'Customer name is required.', 'error'); return; }
+            const btn = document.getElementById('cust-submit-btn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving...';
+
+            if (editingCustomerId) {
+                api('/customers/' + editingCustomerId, { method: 'PUT', body: JSON.stringify({ name, phone, email, address, note }) }).then(() => {
+                    showFeedback(fb, 'Customer updated!', 'success');
+                    hideCustomerForm();
+                    loadCustomers();
+                }).catch(err => showFeedback(fb, err.message, 'error')).finally(() => {
+                    btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-check"></i> Save Customer';
+                });
+            } else {
+                api('/customers', { method: 'POST', body: JSON.stringify({ name, phone, email, address, note }) }).then(() => {
+                    showFeedback(fb, 'Customer registered!', 'success');
+                    hideCustomerForm();
+                    loadCustomers();
+                }).catch(err => showFeedback(fb, err.message, 'error')).finally(() => {
+                    btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-check"></i> Save Customer';
+                });
+            }
+        }
+
+        function editCustomer(id) {
+            api('/customers').then(customers => {
+                const c = customers.find(x => x.id === id);
+                if (!c) return;
+                editingCustomerId = id;
+                document.getElementById('customer-form-title').textContent = 'Edit: ' + c.name;
+                document.getElementById('cust-name').value = c.name;
+                document.getElementById('cust-phone').value = c.phone || '';
+                document.getElementById('cust-email').value = c.email || '';
+                document.getElementById('cust-address').value = c.address || '';
+                document.getElementById('cust-note').value = c.note || '';
+                document.getElementById('customer-form-card').classList.remove('hidden');
+            }).catch(() => {});
+        }
+
+        function deleteCustomer(id, name) {
+            if (!confirm('Delete customer "' + name + '"? This cannot be undone.')) return;
+            api('/customers/' + id, { method: 'DELETE' }).then(() => {
+                loadCustomers();
             }).catch(err => alert(err.message));
         }
 
