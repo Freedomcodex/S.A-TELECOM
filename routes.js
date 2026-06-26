@@ -580,7 +580,7 @@ router.get('/activity', authenticate, (req, res) => {
   const items = [];
 
   const recentEntries = getAll(`
-    SELECT description, amount, entry_type, customer_type, client_name, created_at, u.display_name as user_name
+    SELECT description, amount, entry_type, customer_type, client_name, e.created_at, u.display_name as user_name
     FROM entries e LEFT JOIN users u ON e.created_by = u.id
     ORDER BY e.id DESC LIMIT 15
   `);
