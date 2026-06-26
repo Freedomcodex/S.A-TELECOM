@@ -1,6 +1,21 @@
 const jwt = require('jsonwebtoken');
+const { getOne } = require('./db');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'satelcom-ledger-secret-key-2026';
+
+const ALL_PERMISSIONS = [
+  'add_sale',
+  'add_due',
+  'collect_due',
+  'view_report',
+  'search_customer',
+  'view_dashboard',
+  'backup_recovery',
+  'delete_entries',
+  'change_settings',
+  'view_profit',
+  'manage_users'
+];
 
 function generateToken(user) {
   return jwt.sign(
@@ -15,7 +30,6 @@ function authenticate(req, res, next) {
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return res.status(401).json({ error: 'Authentication required' });
   }
-
   const token = authHeader.split(' ')[1];
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
@@ -33,4 +47,20 @@ function adminOnly(req, res, next) {
   next();
 }
 
-module.exports = { generateToken, authenticate, adminOnly, JWT_SECRET };
+function requirePermission(perm) {
+  return (req, res, next) => {
+    if (req.user.role === 'admin') return next();
+    const user = getOne('SELECT permissions FROM users WHERE id = ?', [req.user.id]);
+    const perms = user && user.permissions ? user.permissions.split(',').filter(Boolean) : [];
+    if (perms.includes(perm)) return next();
+    return res.status(403).json({ error: 'Permission denied: ' + perm });
+  };
+}
+
+function getUserPermissions(userId) {
+  const user = getOne('SELECT permissions FROM users WHERE id = ?', [userId]);
+  if (!user) return [];
+  return user.permissions ? user.permissions.split(',').filter(Boolean) : [];
+}
+
+module.exports = { generateToken, authenticate, adminOnly, requirePermission, getUserPermissions, ALL_PERMISSIONS, JWT_SECRET };

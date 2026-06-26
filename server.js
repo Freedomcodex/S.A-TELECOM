@@ -47,3 +47,4 @@ initDb().then(() => {
 
 process.on('SIGINT', () => { backupDb(); process.exit(0); });
 process.on('SIGTERM', () => { backupDb(); process.exit(0); });
+process.on('unhandledRejection', (err) => { console.error('Unhandled rejection:', err); });
