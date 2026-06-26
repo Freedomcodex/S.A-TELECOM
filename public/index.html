@@ -766,12 +766,12 @@
                     <button onclick="createBackup()" class="btn-primary"><i class="fa-solid fa-database"></i> Create Backup Now</button>
                 </div>
 
-                <div class="glass-card" style="padding:16px 24px;display:flex;align-items:center;justify-content:space-between;background:#FEF2F2;border:1px solid #FECACA;">
+                <div class="glass-card" style="padding:16px 24px;display:flex;align-items:center;justify-content:space-between;background:#FEF2F2;border:1px solid #FECACA;" id="reset-data-section">
                     <div>
                         <h3 style="font-size:13px;font-weight:700;color:#DC2626;display:flex;align-items:center;gap:8px;"><i class="fa-solid fa-triangle-exclamation" style="color:#DC2626;"></i> Reset All Data</h3>
                         <p style="font-size:12px;color:var(--text-muted);margin:4px 0 0;">Clears all entries, dues, collections, suppliers, customers, payments. Preserves admin account. Resets opening balance.</p>
                     </div>
-                    <button onclick="resetAllData()" class="btn-primary" style="background:#DC2626;box-shadow:0 2px 8px rgba(220,38,38,0.3);"><i class="fa-solid fa-broom"></i> Reset All Data</button>
+                    <button onclick="resetAllData()" class="btn-primary" style="background:#DC2626;box-shadow:0 2px 8px rgba(220,38,38,0.3);" id="reset-data-btn"><i class="fa-solid fa-broom"></i> Reset All Data</button>
                 </div>
 
                 <div class="glass-card" style="overflow:hidden;">
@@ -1139,6 +1139,8 @@
             if (custNav) custNav.style.display = hasPermission('manage_customers') || isAdmin ? 'flex' : 'none';
             const backupLink = document.querySelector('[onclick*="backup-tab"]');
             if (backupLink) backupLink.style.display = hasPermission('backup_recovery') || isAdmin ? 'flex' : 'none';
+            const resetSection = document.getElementById('reset-data-section');
+            if (resetSection) resetSection.style.display = isAdmin ? 'flex' : 'none';
             if (!hasPermission('view_dashboard') && !isAdmin) {
                 switchTab('entry-tab', null);
                 const dashLink = document.querySelector('[onclick*="dashboard-tab"]');
