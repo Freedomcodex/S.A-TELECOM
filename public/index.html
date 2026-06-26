@@ -31,9 +31,11 @@
         ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 3px; }
         .dark ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); }
 
-        .tab-content { display: none; }
-        .tab-content.active { display: block; }
+        .tab-content { display: none; opacity: 0; transform: translateY(12px); }
+        .tab-content.active { display: flex; flex-direction: column; opacity: 1; transform: translateY(0); }
+        .tab-content.page-enter { animation: pageSlideIn 0.3s ease forwards; }
         #login-overlay.active { display: flex; }
+        @keyframes pageSlideIn { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
 
         .glass-card {
             background: var(--card-bg); border: 1px solid var(--border);
@@ -116,8 +118,28 @@
         .table-modern td { padding: 12px 16px; border-bottom: 1px solid var(--border); font-size: 13px; }
         .table-modern tr:hover td { background: rgba(37,99,235,0.02); }
 
-        .page-title { font-size: 24px; font-weight: 800; color: var(--text); letter-spacing: -0.02em; }
+        .page-title { font-size: 26px; font-weight: 800; color: var(--text); letter-spacing: -0.02em; }
         .page-subtitle { font-size: 13px; color: var(--text-muted); font-weight: 400; margin-top: 2px; }
+
+        .page-header-banner {
+            background: linear-gradient(135deg, var(--primary) 0%, #1D4ED8 100%);
+            border-radius: 16px; padding: 28px 32px; margin-bottom: 24px;
+            display: flex; align-items: center; gap: 20px;
+            box-shadow: 0 4px 20px rgba(37,99,235,0.25);
+            position: relative; overflow: hidden;
+        }
+        .page-header-banner::after {
+            content: ''; position: absolute; right: -20px; top: -20px;
+            width: 120px; height: 120px; border-radius: 50%;
+            background: rgba(255,255,255,0.08);
+        }
+        .page-header-banner .banner-icon {
+            width: 56px; height: 56px; border-radius: 16px;
+            display: flex; align-items: center; justify-content: center;
+            background: rgba(255,255,255,0.15); font-size: 24px; color: #fff; flex-shrink: 0;
+        }
+        .page-header-banner h1 { font-size: 24px; font-weight: 800; color: #fff; margin: 0; }
+        .page-header-banner p { font-size: 13px; color: rgba(255,255,255,0.7); margin: 4px 0 0; }
 
         .kpi-value { font-size: 26px; font-weight: 800; line-height: 1.1; }
         .kpi-label { font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; }
@@ -259,6 +281,10 @@
                 </a>
 
                 <div class="sidebar-group" style="margin-top:8px;">Admin</div>
+                <a class="sidebar-link" onclick="switchTab('suppliers-tab', this)" style="margin-bottom:2px;" id="nav-suppliers">
+                    <div class="sidebar-icon"><i class="fa-solid fa-truck"></i></div>
+                    <span>Suppliers</span>
+                </a>
                 <a class="sidebar-link" onclick="switchTab('backup-tab', this)" style="margin-bottom:2px;">
                     <div class="sidebar-icon"><i class="fa-solid fa-database"></i></div>
                     <span>Backup & Recovery</span>
@@ -318,28 +344,28 @@
 
                 <!-- KPI Cards Row 1 -->
                 <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:16px;">
-                    <div class="glass-card" style="padding:20px;">
+                    <div class="glass-card" style="padding:20px;cursor:pointer;" onclick="showKpiDetail('sales')">
                         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
                             <span class="kpi-label">Today's Sales</span>
                             <div class="stat-icon" style="background:#EFF6FF;"><i class="fa-solid fa-arrow-trend-up" style="color:#2563EB"></i></div>
                         </div>
                         <p class="kpi-value" style="color:#2563EB;" id="dash-main-ledger">Tk 0</p>
                     </div>
-                    <div class="glass-card" style="padding:20px;">
+                    <div class="glass-card" style="padding:20px;cursor:pointer;" onclick="showKpiDetail('cashout')">
                         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
                             <span class="kpi-label">Cash Out</span>
                             <div class="stat-icon" style="background:#FEF2F2;"><i class="fa-solid fa-arrow-trend-down" style="color:#EF4444"></i></div>
                         </div>
                         <p class="kpi-value" style="color:#EF4444;" id="dash-cash-out">Tk 0</p>
                     </div>
-                    <div class="glass-card" style="padding:20px;">
+                    <div class="glass-card" style="padding:20px;cursor:pointer;" onclick="showKpiDetail('opening')">
                         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
                             <span class="kpi-label">Opening Balance</span>
                             <div class="stat-icon" style="background:#F0FDF4;"><i class="fa-solid fa-wallet" style="color:#10B981"></i></div>
                         </div>
                         <p class="kpi-value" style="color:#10B981;" id="dash-opening">Tk 0</p>
                     </div>
-                    <div class="glass-card" style="padding:20px;">
+                    <div class="glass-card" style="padding:20px;cursor:pointer;" onclick="showKpiDetail('net')">
                         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
                             <span class="kpi-label">Net Ledger</span>
                             <div class="stat-icon" style="background:#F5F3FF;"><i class="fa-solid fa-calculator" style="color:#7C3AED"></i></div>
@@ -350,52 +376,32 @@
 
                 <!-- KPI Row 2 -->
                 <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:16px;">
-                    <div class="glass-card" style="padding:20px;">
+                    <div class="glass-card" style="padding:20px;cursor:pointer;" onclick="showKpiDetail('dues')">
                         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
                             <span class="kpi-label">Outstanding Dues</span>
                             <div class="stat-icon" style="background:#FFFBEB;"><i class="fa-solid fa-triangle-exclamation" style="color:#F59E0B"></i></div>
                         </div>
                         <p class="kpi-value" style="color:#F59E0B;" id="dash-total-dues">Tk 0</p>
                     </div>
-                    <div class="glass-card" style="padding:20px;">
+                    <div class="glass-card" style="padding:20px;cursor:pointer;" onclick="showKpiDetail('collected')">
                         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
                             <span class="kpi-label">Collected Today</span>
                             <div class="stat-icon" style="background:#F0FDF4;"><i class="fa-solid fa-money-check-dollar" style="color:#10B981"></i></div>
                         </div>
                         <p class="kpi-value" style="color:#10B981;" id="dash-total-collected">Tk 0</p>
                     </div>
-                </div>
-
-                <!-- Charts -->
-                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(400px,1fr));gap:20px;">
-                    <div class="glass-card" style="padding:24px;">
-                        <h3 style="font-size:14px;font-weight:700;color:var(--text);margin:0 0 20px;display:flex;align-items:center;gap:8px;">
-                            <span style="width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;background:#EFF6FF;"><i class="fa-solid fa-chart-column text-blue-600 text-sm"></i></span>
-                            Top Earning Categories
-                        </h3>
-                        <canvas id="topItemsChart" height="180"></canvas>
-                    </div>
-                    <div class="glass-card" style="padding:24px;">
-                        <h3 style="font-size:14px;font-weight:700;color:var(--text);margin:0 0 20px;display:flex;align-items:center;gap:8px;">
-                            <span style="width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;background:#FEF2F2;"><i class="fa-solid fa-chart-pie text-red-500 text-sm"></i></span>
-                            Cash Distribution
-                        </h3>
-                        <canvas id="cashDistributionChart" height="180"></canvas>
-                    </div>
-                </div>
-
-                <!-- Activity Feed -->
-                <div class="glass-card" style="padding:24px;">
-                    <h3 style="font-size:14px;font-weight:700;color:var(--text);margin:0 0 16px;display:flex;align-items:center;gap:8px;">
-                        <span style="width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;background:#F0FDF4;"><i class="fa-solid fa-clock-rotate-left text-green-600 text-sm"></i></span>
-                        Recent Activity
-                    </h3>
-                    <div id="activity-feed" style="display:flex;flex-direction:column;gap:8px;">
-                        <div style="display:flex;align-items:center;gap:12px;color:var(--text-muted);font-size:13px;padding:20px;text-align:center;justify-content:center;">
-                            <i class="fa-solid fa-spinner fa-spin"></i> Loading...
+                    <div class="glass-card" style="padding:20px;cursor:pointer;" onclick="showKpiDetail('suppliers')">
+                        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+                            <span class="kpi-label">Total Suppliers</span>
+                            <div class="stat-icon" style="background:#EFF6FF;"><i class="fa-solid fa-truck" style="color:#2563EB"></i></div>
                         </div>
+                        <p class="kpi-value" style="color:#2563EB;" id="dash-total-suppliers">0</p>
                     </div>
                 </div>
+
+                <!-- KPI Detail Panel -->
+                <div id="kpi-detail-panel" class="hidden" style="display:none;flex-direction:column;gap:16px;"></div>
+
             </div>
 
             <!-- Add Sale Tab -->
@@ -619,8 +625,12 @@
                         <h3 style="font-size:13px;font-weight:700;color:#BE123C;margin-bottom:16px;display:flex;align-items:center;gap:8px;"><i class="fa-solid fa-truck"></i> Supplier Payment</h3>
                         <form id="add-supplier-payment-form" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:16px;align-items:end;" onsubmit="event.preventDefault(); addSupplierPayment();">
                             <div>
-                                <label style="display:block;font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;">Supplier Name</label>
-                                <input type="text" id="sp-supplier" placeholder="e.g. Parts Vendor" required class="input-modern">
+                                <label style="display:block;font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;">Select Supplier</label>
+                                <select id="sp-supplier-select" class="select-modern" onchange="var opt=this.options[this.selectedIndex];document.getElementById('sp-supplier').value=opt.value;document.getElementById('sp-supplier-id').value=opt.value?opt.getAttribute('data-id')||'':'';">
+                                    <option value="">-- Select or type below --</option>
+                                </select>
+                                <input type="text" id="sp-supplier" placeholder="Or type new name" class="input-modern" style="margin-top:6px;" oninput="if(this.value)document.getElementById('sp-supplier-select').value='';">
+                                <input type="hidden" id="sp-supplier-id" value="">
                             </div>
                             <div>
                                 <label style="display:block;font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;">Amount (Tk)</label>
@@ -747,6 +757,71 @@
                 </div>
             </div>
 
+            <!-- Suppliers Tab -->
+            <div id="suppliers-tab" class="tab-content hidden fade-in" style="display:flex;flex-direction:column;gap:20px;">
+                <div style="display:flex;align-items:center;justify-content:space-between;">
+                    <div>
+                        <h1 class="page-title">Suppliers</h1>
+                        <p class="page-subtitle">Register and manage your supplier accounts</p>
+                    </div>
+                    <button onclick="showAddSupplier()" class="btn-primary"><i class="fa-solid fa-truck"></i> Add Supplier</button>
+                </div>
+
+                <!-- Supplier Form -->
+                <div id="supplier-form-card" class="glass-card hidden" style="padding:24px;">
+                    <h3 style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:16px;" id="supplier-form-title">Register New Supplier</h3>
+                    <p id="supplier-feedback" class="hidden" style="font-size:13px;font-weight:500;padding:10px 16px;border-radius:10px;margin-bottom:16px;"></p>
+                    <form id="supplier-form" onsubmit="event.preventDefault(); saveSupplier();" style="display:flex;flex-direction:column;gap:16px;">
+                        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;">
+                            <div>
+                                <label style="display:block;font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;">Supplier Name *</label>
+                                <input type="text" id="sup-name" class="input-modern" placeholder="e.g. Parts Vendor" required>
+                            </div>
+                            <div>
+                                <label style="display:block;font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;">Phone</label>
+                                <input type="text" id="sup-phone" class="input-modern" placeholder="e.g. 01XXXXXXXXX">
+                            </div>
+                            <div>
+                                <label style="display:block;font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;">Email</label>
+                                <input type="email" id="sup-email" class="input-modern" placeholder="vendor@example.com">
+                            </div>
+                            <div>
+                                <label style="display:block;font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;">Address</label>
+                                <input type="text" id="sup-address" class="input-modern" placeholder="e.g. Shop 12, Market Road">
+                            </div>
+                            <div>
+                                <label style="display:block;font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;">Note</label>
+                                <input type="text" id="sup-note" class="input-modern" placeholder="Remarks">
+                            </div>
+                        </div>
+                        <div style="display:flex;justify-content:flex-end;gap:12px;">
+                            <button type="button" class="btn-secondary" onclick="hideSupplierForm()">Cancel</button>
+                            <button type="submit" id="sup-submit-btn" class="btn-primary"><i class="fa-solid fa-check"></i> Save Supplier</button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Supplier Payments Summary -->
+                <div class="glass-card" style="padding:20px;background:#FFFBEB;border:1px solid #FDE68A;">
+                    <h3 style="font-size:13px;font-weight:700;color:#92400E;margin:0 0 12px;display:flex;align-items:center;gap:8px;"><i class="fa-solid fa-money-bill-wave"></i> Supplier Payment Summary</h3>
+                    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:16px;">
+                        <div><span style="font-size:11px;color:var(--text-muted);display:block;">Total Payable</span><span style="font-size:20px;font-weight:800;color:#92400E;" id="sup-total-payable">Tk 0</span></div>
+                        <div><span style="font-size:11px;color:var(--text-muted);display:block;">Total Paid</span><span style="font-size:20px;font-weight:800;color:#10B981;" id="sup-total-paid">Tk 0</span></div>
+                        <div><span style="font-size:11px;color:var(--text-muted);display:block;">Pending</span><span style="font-size:20px;font-weight:800;color:#EF4444;" id="sup-total-pending">Tk 0</span></div>
+                    </div>
+                </div>
+
+                <!-- Suppliers Table -->
+                <div class="glass-card" style="overflow:hidden;">
+                    <div style="overflow-x:auto;">
+                        <table class="table-modern" style="width:100%;">
+                            <thead><tr><th>Supplier</th><th>Contact</th><th>Total Payable</th><th>Paid</th><th>Pending</th><th style="text-align:center;">Actions</th></tr></thead>
+                            <tbody id="suppliers-table-body"><tr><td colspan="6" style="text-align:center;color:var(--text-muted);">Loading...</td></tr></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
             <!-- Users Tab -->
             <div id="users-tab" class="tab-content hidden fade-in" style="display:flex;flex-direction:column;gap:20px;">
                 <div style="display:flex;align-items:center;justify-content:space-between;">
@@ -836,8 +911,7 @@
         let token = sessionStorage.getItem('token');
         let currentUser = null;
         let userPermissions = [];
-        let topItemsChart = null;
-        let cashDistChart = null;
+
 
         // Dark mode init
         if (localStorage.getItem('dark') === '1') {
@@ -850,8 +924,6 @@
             const on = document.body.classList.contains('dark');
             document.getElementById('dark-toggle').classList.toggle('on', on);
             localStorage.setItem('dark', on ? '1' : '0');
-            if (topItemsChart) { topItemsChart.update(); }
-            if (cashDistChart) { cashDistChart.update(); }
             loadDashboard();
         }
 
@@ -945,9 +1017,9 @@
         }
 
         function switchTab(tabId, el) {
-            document.querySelectorAll('.tab-content').forEach(t => { t.classList.remove('active'); t.classList.add('hidden'); });
+            document.querySelectorAll('.tab-content').forEach(t => { t.classList.remove('active', 'page-enter'); t.style.display = 'none'; });
             const target = document.getElementById(tabId);
-            if (target) { target.classList.add('active'); target.classList.remove('hidden'); target.style.display = tabId === 'dashboard-tab' || tabId === 'report-tab' || tabId === 'dues-tab' ? 'flex' : 'block'; }
+            if (target) { target.style.display = 'flex'; target.classList.add('active'); target.classList.add('page-enter'); }
             document.querySelectorAll('.sidebar-link').forEach(l => l.classList.remove('active'));
             if (el) el.classList.add('active');
             closeSidebar();
@@ -957,6 +1029,7 @@
             if (tabId === 'report-tab') loadReport();
             if (tabId === 'dues-tab') { loadDues(); loadSupplierPayments(); }
             if (tabId === 'backup-tab') { checkHealth(); loadBackups(); }
+            if (tabId === 'suppliers-tab') loadSuppliers();
             if (tabId === 'users-tab') loadUsers();
         }
 
@@ -968,11 +1041,14 @@
             loadReport();
             loadDues();
             loadSupplierPayments();
+            loadSuppliers();
         }
 
         function applyPermissions() {
             const isAdmin = currentUser && currentUser.role === 'admin';
             document.getElementById('nav-users').style.display = isAdmin ? 'flex' : 'none';
+            const supNav = document.getElementById('nav-suppliers');
+            if (supNav) supNav.style.display = hasPermission('manage_suppliers') || isAdmin ? 'flex' : 'none';
             const backupLink = document.querySelector('[onclick*="backup-tab"]');
             if (backupLink) backupLink.style.display = hasPermission('backup_recovery') || isAdmin ? 'flex' : 'none';
             if (!hasPermission('view_dashboard') && !isAdmin) {
@@ -1001,38 +1077,7 @@
                 document.getElementById('dash-net-ledger').textContent = 'Tk ' + (data.netLedgerTotal||0).toLocaleString();
                 document.getElementById('dash-total-dues').textContent = 'Tk ' + (data.totalDues||0).toLocaleString();
                 document.getElementById('dash-total-collected').textContent = 'Tk ' + (data.totalCollectedToday||0).toLocaleString();
-            }).catch(() => {});
-
-            api('/dashboard/charts').then(data => {
-                const topLabels = data.topItems.map(i => i.description);
-                const topValues = data.topItems.map(i => i.total);
-                const cashLabels = data.cashOutByPerson.map(i => i.description);
-                const cashValues = data.cashOutByPerson.map(i => i.total);
-                const colors = ['#2563EB','#3B82F6','#06B6D4','#10B981','#F59E0B','#EF4444'];
-                const gridColor = document.body.classList.contains('dark') ? '#334155' : '#E2E8F0';
-                const textColor = document.body.classList.contains('dark') ? '#94A3B8' : '#64748B';
-
-                const topCtx = document.getElementById('topItemsChart').getContext('2d');
-                if (topItemsChart) topItemsChart.destroy();
-                topItemsChart = new Chart(topCtx, {
-                    type: 'bar',
-                    data: {
-                        labels: topLabels.length ? topLabels : ['No data'],
-                        datasets: [{ label: 'Amount (Tk)', data: topValues.length ? topValues : [0], backgroundColor: topLabels.map((_,i) => colors[i % colors.length]), borderRadius: 8, barThickness: 40 }]
-                    },
-                    options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { color: gridColor }, ticks: { color: textColor } }, x: { grid: { display: false }, ticks: { color: textColor } } } }
-                });
-
-                const cashCtx = document.getElementById('cashDistributionChart').getContext('2d');
-                if (cashDistChart) cashDistChart.destroy();
-                cashDistChart = new Chart(cashCtx, {
-                    type: 'doughnut',
-                    data: {
-                        labels: cashLabels.length ? cashLabels : ['No data'],
-                        datasets: [{ data: cashValues.length ? cashValues : [1], backgroundColor: colors.slice(0, Math.max(cashLabels.length, 1)), borderWidth: 0, hoverOffset: 8 }]
-                    },
-                    options: { responsive: true, cutout: '65%', plugins: { legend: { position: 'right', labels: { padding: 16, usePointStyle: true, color: textColor } } } }
-                });
+                document.getElementById('dash-total-suppliers').textContent = (data.totalSuppliers||0).toLocaleString();
             }).catch(() => {});
 
             // Activity feed
@@ -1090,6 +1135,203 @@
             }).catch(err => { showFeedback(fb, err.message, 'error'); }).finally(() => {
                 btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-plus"></i> Save Entry';
             });
+        }
+
+        // ─── KPI Detail Panel ──────────────────────────────
+        function showKpiDetail(type) {
+            const panel = document.getElementById('kpi-detail-panel');
+            panel.style.display = 'flex';
+            panel.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted);"><i class="fa-solid fa-spinner fa-spin text-2xl"></i><p style="margin-top:12px;">Loading...</p></div>';
+            panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+            const today = new Date().toISOString().slice(0, 10);
+
+            const renderers = {
+                sales: () => {
+                    api('/reports/daily?date=' + today).then(r => {
+                        const entries = r.mainEntries;
+                        panel.innerHTML = `
+                            <div class="glass-card" style="overflow:hidden;">
+                                <div style="padding:16px 24px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:#EFF6FF;">
+                                    <div><h3 style="font-size:14px;font-weight:700;color:#2563EB;margin:0;">Today's Sales — Full History</h3><p style="font-size:12px;color:var(--text-muted);margin:4px 0 0;">${today}</p></div>
+                                    <span style="font-size:20px;font-weight:800;color:#2563EB;">Tk ${(r.mainTotal||0).toLocaleString()}</span>
+                                </div>
+                                ${entries.length === 0
+                                    ? '<div style="padding:32px;text-align:center;color:var(--text-muted);">No sales today.</div>'
+                                    : `<div style="overflow-x:auto;max-height:400px;overflow-y:auto;"><table class="table-modern" style="width:100%;"><thead><tr><th>#</th><th>Description</th><th>Notes</th><th>Customer</th><th style="text-align:right;">Amount</th></tr></thead><tbody>${entries.map((e,i) => `<tr><td>${i+1}</td><td style="font-weight:600;">${escapeHtml(e.description)}</td><td style="color:var(--text-muted);">${escapeHtml(e.notes)||'-'}</td><td>${e.customer_type === 'market' ? '🏪 Market' : '🚶 Walk-in'}</td><td style="text-align:right;font-weight:700;color:#10B981;">Tk ${e.amount.toLocaleString()}</td></tr>`).join('')}</tbody><tfoot><tr style="font-weight:700;"><td colspan="4" style="text-align:right;">Total:</td><td style="text-align:right;color:#2563EB;">Tk ${(r.mainTotal||0).toLocaleString()}</td></tr></tfoot></table></div>`}
+                                <div style="padding:12px 24px;border-top:1px solid var(--border);display:flex;gap:24px;font-size:12px;color:var(--text-muted);">
+                                    <span>Walk-in: Tk ${(r.walkinTotal||0).toLocaleString()}</span>
+                                    <span>Market: Tk ${(r.marketTotal||0).toLocaleString()}</span>
+                                </div>
+                            </div>
+                            ${btnClose()}`;
+                    }).catch(() => panel.innerHTML = errorCard());
+                },
+                cashout: () => {
+                    api('/reports/daily?date=' + today).then(r => {
+                        const entries = r.cashOutEntries;
+                        panel.innerHTML = `
+                            <div class="glass-card" style="overflow:hidden;">
+                                <div style="padding:16px 24px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:#FEF2F2;">
+                                    <div><h3 style="font-size:14px;font-weight:700;color:#EF4444;margin:0;">Cash Out — Full History</h3><p style="font-size:12px;color:var(--text-muted);margin:4px 0 0;">${today}</p></div>
+                                    <span style="font-size:20px;font-weight:800;color:#EF4444;">Tk ${(r.cashOutTotal||0).toLocaleString()}</span>
+                                </div>
+                                ${entries.length === 0
+                                    ? '<div style="padding:32px;text-align:center;color:var(--text-muted);">No cash out today.</div>'
+                                    : `<div style="overflow-x:auto;max-height:400px;overflow-y:auto;"><table class="table-modern" style="width:100%;"><thead><tr><th>Receiver</th><th style="text-align:right;">Amount</th></tr></thead><tbody>${entries.map(e => `<tr><td style="font-weight:600;">${escapeHtml(e.description)}</td><td style="text-align:right;font-weight:700;color:#EF4444;">Tk ${e.amount.toLocaleString()}</td></tr>`).join('')}</tbody><tfoot><tr style="font-weight:700;"><td style="text-align:right;">Total:</td><td style="text-align:right;color:#EF4444;">Tk ${(r.cashOutTotal||0).toLocaleString()}</td></tr></tfoot></table></div>`}
+                            </div>
+                            ${btnClose()}`;
+                    }).catch(() => panel.innerHTML = errorCard());
+                },
+                opening: () => {
+                    api('/settings').then(s => {
+                        const ob = parseFloat(s.opening_balance) || 0;
+                        const today = new Date().toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' });
+                        panel.innerHTML = `
+                            <div class="glass-card" style="overflow:hidden;">
+                                <div style="padding:16px 24px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:#F0FDF4;">
+                                    <div><h3 style="font-size:14px;font-weight:700;color:#10B981;margin:0;">Opening Balance Details</h3><p style="font-size:12px;color:var(--text-muted);margin:4px 0 0;">Current setting as of ${today}</p></div>
+                                    <span style="font-size:20px;font-weight:800;color:#10B981;">Tk ${ob.toLocaleString()}</span>
+                                </div>
+                                <div style="padding:24px;display:flex;flex-direction:column;gap:16px;">
+                                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+                                        <div style="padding:20px;border-radius:12px;background:var(--input-bg);border:1px solid var(--border);text-align:center;">
+                                            <span style="font-size:11px;text-transform:uppercase;font-weight:700;color:var(--text-muted);">Opening Balance</span>
+                                            <p style="font-size:28px;font-weight:800;color:#10B981;margin:8px 0;">Tk ${ob.toLocaleString()}</p>
+                                        </div>
+                                        <div style="padding:20px;border-radius:12px;background:var(--input-bg);border:1px solid var(--border);text-align:center;">
+                                            <span style="font-size:11px;text-transform:uppercase;font-weight:700;color:var(--text-muted);">Status</span>
+                                            <p style="font-size:20px;font-weight:700;color:${ob > 0 ? '#10B981' : '#EF4444'};margin:8px 0;">${ob > 0 ? 'Active' : 'Not Set'}</p>
+                                        </div>
+                                    </div>
+                                    <div style="padding:16px;border-radius:12px;background:#FFFBEB;border:1px solid #FDE68A;font-size:13px;color:#92400E;">
+                                        <i class="fa-solid fa-circle-info"></i> Opening balance is used to calculate Net Ledger. Update it in Settings (requires <strong>change_settings</strong> permission).
+                                    </div>
+                                </div>
+                            </div>
+                            ${btnClose()}`;
+                    }).catch(() => panel.innerHTML = errorCard());
+                },
+                net: () => {
+                    api('/dashboard/summary').then(d => {
+                        api('/settings').then(s => {
+                            const ob = parseFloat(s.opening_balance) || 0;
+                            panel.innerHTML = `
+                                <div class="glass-card" style="overflow:hidden;">
+                                    <div style="padding:16px 24px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:#F5F3FF;">
+                                        <div><h3 style="font-size:14px;font-weight:700;color:#7C3AED;margin:0;">Net Ledger — Full Breakdown</h3><p style="font-size:12px;color:var(--text-muted);margin:4px 0 0;">Today's financial position</p></div>
+                                        <span style="font-size:20px;font-weight:800;color:#7C3AED;">Tk ${(d.netLedgerTotal||0).toLocaleString()}</span>
+                                    </div>
+                                    <div style="padding:24px;display:flex;flex-direction:column;gap:16px;">
+                                        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;">
+                                            <div style="padding:20px;border-radius:12px;background:#EFF6FF;border:1px solid #BFDBFE;text-align:center;">
+                                                <span style="font-size:10px;text-transform:uppercase;font-weight:700;color:#2563EB;">Opening</span>
+                                                <p style="font-size:22px;font-weight:800;color:#1E40AF;margin:8px 0;">Tk ${ob.toLocaleString()}</p>
+                                            </div>
+                                            <div style="padding:20px;border-radius:12px;background:#F0FDF4;border:1px solid #A7F3D0;text-align:center;">
+                                                <span style="font-size:10px;text-transform:uppercase;font-weight:700;color:#10B981;">Sales Today</span>
+                                                <p style="font-size:22px;font-weight:800;color:#047857;margin:8px 0;">+ Tk ${(d.mainLedgerTotal||0).toLocaleString()}</p>
+                                            </div>
+                                            <div style="padding:20px;border-radius:12px;background:#FEF2F2;border:1px solid #FECACA;text-align:center;">
+                                                <span style="font-size:10px;text-transform:uppercase;font-weight:700;color:#EF4444;">Cash Out</span>
+                                                <p style="font-size:22px;font-weight:800;color:#B91C1C;margin:8px 0;">- Tk ${(d.cashOutTotal||0).toLocaleString()}</p>
+                                            </div>
+                                            <div style="padding:20px;border-radius:12px;background:#F5F3FF;border:1px solid #DDD6FE;text-align:center;">
+                                                <span style="font-size:10px;text-transform:uppercase;font-weight:700;color:#7C3AED;">Net Ledger</span>
+                                                <p style="font-size:22px;font-weight:800;color:#5B21B6;margin:8px 0;">Tk ${(d.netLedgerTotal||0).toLocaleString()}</p>
+                                            </div>
+                                        </div>
+                                        <div style="padding:16px;border-radius:12px;background:var(--input-bg);border:1px solid var(--border);font-size:13px;color:var(--text);text-align:center;">
+                                            Formula: <strong>Opening Balance (Tk ${ob.toLocaleString()}) + Sales (Tk ${(d.mainLedgerTotal||0).toLocaleString()}) - Cash Out (Tk ${(d.cashOutTotal||0).toLocaleString()})</strong>
+                                        </div>
+                                    </div>
+                                </div>
+                                ${btnClose()}`;
+                        }).catch(() => panel.innerHTML = errorCard());
+                    }).catch(() => panel.innerHTML = errorCard());
+                },
+                dues: () => {
+                    api('/dues').then(dues => {
+                        const activeDues = dues.filter(d => d.pending > 0);
+                        const totalPending = activeDues.reduce((s, d) => s + d.pending, 0);
+                        panel.innerHTML = `
+                            <div class="glass-card" style="overflow:hidden;">
+                                <div style="padding:16px 24px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:#FFFBEB;">
+                                    <div><h3 style="font-size:14px;font-weight:700;color:#D97706;margin:0;">Outstanding Dues — Full List</h3><p style="font-size:12px;color:var(--text-muted);margin:4px 0 0;">${activeDues.length} client(s) with pending dues</p></div>
+                                    <span style="font-size:20px;font-weight:800;color:#D97706;">Tk ${totalPending.toLocaleString()}</span>
+                                </div>
+                                ${activeDues.length === 0
+                                    ? '<div style="padding:32px;text-align:center;color:var(--text-muted);"><i class="fa-solid fa-circle-check text-4xl text-green-500 block mb-4"></i>No outstanding dues!</div>'
+                                    : `<div style="overflow-x:auto;max-height:400px;overflow-y:auto;"><table class="table-modern" style="width:100%;"><thead><tr><th>Client</th><th>Original</th><th>Collected</th><th style="text-align:right;">Pending</th></tr></thead><tbody>${activeDues.map(d => `<tr><td style="font-weight:600;">${escapeHtml(d.client_name)}</td><td>Tk ${d.original_amount.toLocaleString()}</td><td style="color:#10B981;">Tk ${(d.collected||0).toLocaleString()}</td><td style="text-align:right;font-weight:700;color:#D97706;">Tk ${d.pending.toLocaleString()}</td></tr>`).join('')}</tbody><tfoot><tr style="font-weight:700;"><td colspan="3" style="text-align:right;">Total Pending:</td><td style="text-align:right;color:#D97706;">Tk ${totalPending.toLocaleString()}</td></tr></tfoot></table></div>`}
+                            </div>
+                            ${btnClose()}`;
+                    }).catch(() => panel.innerHTML = errorCard());
+                },
+                collected: () => {
+                    api('/dashboard/summary').then(d => {
+                        api('/reports/daily?date=' + today).then(r => {
+                            const duesWithCollect = r.mainEntries.filter(e => e.entry_type === 'main' && e.customer_type === 'market');
+                            panel.innerHTML = `
+                                <div class="glass-card" style="overflow:hidden;">
+                                    <div style="padding:16px 24px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:#F0FDF4;">
+                                        <div><h3 style="font-size:14px;font-weight:700;color:#10B981;margin:0;">Today's Collections</h3><p style="font-size:12px;color:var(--text-muted);margin:4px 0 0;">${today}</p></div>
+                                        <span style="font-size:20px;font-weight:800;color:#10B981;">Tk ${(d.totalCollectedToday||0).toLocaleString()}</span>
+                                    </div>
+                                    <div style="padding:24px;display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+                                        <div style="padding:20px;border-radius:12px;background:#F0FDF4;border:1px solid #A7F3D0;text-align:center;">
+                                            <span style="font-size:11px;text-transform:uppercase;font-weight:700;color:#10B981;">Collected Today</span>
+                                            <p style="font-size:28px;font-weight:800;color:#047857;margin:8px 0;">Tk ${(d.totalCollectedToday||0).toLocaleString()}</p>
+                                        </div>
+                                        <div style="padding:20px;border-radius:12px;background:#FFFBEB;border:1px solid #FDE68A;text-align:center;">
+                                            <span style="font-size:11px;text-transform:uppercase;font-weight:700;color:#D97706;">Outstanding Dues</span>
+                                            <p style="font-size:28px;font-weight:800;color:#92400E;margin:8px 0;">Tk ${(d.totalDues||0).toLocaleString()}</p>
+                                        </div>
+                                    </div>
+                                    <div style="padding:12px 24px;border-top:1px solid var(--border);font-size:12px;color:var(--text-muted);text-align:center;">
+                                        <i class="fa-solid fa-circle-info"></i> Collections are payments received against outstanding dues. View full due details in <strong>Dues & Payments</strong> section.
+                                    </div>
+                                </div>
+                                ${btnClose()}`;
+                        }).catch(() => panel.innerHTML = errorCard());
+                    }).catch(() => panel.innerHTML = errorCard());
+                },
+                suppliers: () => {
+                    api('/suppliers').then(suppliers => {
+                        const totalPayable = suppliers.reduce((s, su) => s + (su.total_payable||0), 0);
+                        const totalPaid = suppliers.reduce((s, su) => s + (su.total_paid||0), 0);
+                        panel.innerHTML = `
+                            <div class="glass-card" style="overflow:hidden;">
+                                <div style="padding:16px 24px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:#EFF6FF;">
+                                    <div><h3 style="font-size:14px;font-weight:700;color:#2563EB;margin:0;">All Suppliers</h3><p style="font-size:12px;color:var(--text-muted);margin:4px 0 0;">${suppliers.length} registered supplier(s)</p></div>
+                                    <span style="font-size:20px;font-weight:800;color:#2563EB;">${suppliers.length}</span>
+                                </div>
+                                ${suppliers.length === 0
+                                    ? '<div style="padding:32px;text-align:center;color:var(--text-muted);">No suppliers registered.</div>'
+                                    : `<div style="overflow-x:auto;max-height:400px;overflow-y:auto;"><table class="table-modern" style="width:100%;"><thead><tr><th>Name</th><th>Phone</th><th>Total Payable</th><th>Paid</th><th style="text-align:right;">Pending</th></tr></thead><tbody>${suppliers.map(s => `<tr><td style="font-weight:600;">${escapeHtml(s.name)}</td><td>${escapeHtml(s.phone)||'-'}</td><td>Tk ${(s.total_payable||0).toLocaleString()}</td><td style="color:#10B981;">Tk ${(s.total_paid||0).toLocaleString()}</td><td style="text-align:right;font-weight:700;color:${(s.pending||0)>0?'#EF4444':'#10B981'};">Tk ${(s.pending||0).toLocaleString()}</td></tr>`).join('')}</tbody><tfoot><tr style="font-weight:700;"><td colspan="4" style="text-align:right;">Total:</td><td style="text-align:right;color:#2563EB;">Tk ${(totalPayable - totalPaid).toLocaleString()}</td></tr></tfoot></table></div>`}
+                                <div style="padding:12px 24px;border-top:1px solid var(--border);display:flex;gap:24px;font-size:12px;color:var(--text-muted);">
+                                    <span>Payable: Tk ${totalPayable.toLocaleString()}</span>
+                                    <span>Paid: Tk ${totalPaid.toLocaleString()}</span>
+                                </div>
+                            </div>
+                            ${btnClose()}`;
+                    }).catch(() => panel.innerHTML = errorCard());
+                }
+            };
+
+            if (renderers[type]) renderers[type]();
+            else panel.innerHTML = errorCard('Invalid selection');
+        }
+
+        function closeKpiDetail() {
+            document.getElementById('kpi-detail-panel').style.display = 'none';
+        }
+
+        function btnClose() {
+            return '<div style="display:flex;justify-content:center;"><button onclick="closeKpiDetail()" class="btn-secondary"><i class="fa-solid fa-xmark"></i> Close</button></div>';
+        }
+
+        function errorCard(msg) {
+            return '<div class="glass-card" style="padding:32px;text-align:center;"><p style="color:#EF4444;font-weight:600;">' + (msg || 'Failed to load data') + '</p>' + btnClose() + '</div>';
         }
 
         // ─── Market Sale ────────────────────────────────────
@@ -1184,15 +1426,21 @@
                     `<tr><td style="font-weight:600;">${escapeHtml(p.supplier_name)}</td><td style="color:#E11D48;font-weight:700;">Tk ${p.pending.toLocaleString()}</td><td style="color:var(--text-muted);font-size:12px;">${escapeHtml(p.note)||'-'}</td><td><input type="number" id="pay-input-${p.id}" placeholder="Amt" min="1" max="${p.pending}" class="input-modern" style="width:120px;padding:8px 12px;"></td><td style="text-align:center;"><button onclick="paySupplier(${p.id})" style="background:#E11D48;color:#fff;border:none;border-radius:8px;padding:7px 14px;font-size:11px;font-weight:600;cursor:pointer;"><i class="fa-solid fa-money-bill-wave"></i> Pay</button></td></tr>`
                 ).join('');
             }).catch(() => {});
+
+            api('/suppliers/select').then(suppliers => {
+                const sel = document.getElementById('sp-supplier-select');
+                sel.innerHTML = '<option value="">-- Select or type below --</option>' + suppliers.map(s => `<option value="${escapeHtml(s.name)}" data-id="${s.id}">${escapeHtml(s.name)}</option>`).join('');
+            }).catch(() => {});
         }
 
         function addSupplierPayment() {
             const fb = document.getElementById('dues-feedback');
             const supplier_name = document.getElementById('sp-supplier').value.trim();
+            const supplier_id = document.getElementById('sp-supplier-id').value || null;
             const amount = parseFloat(document.getElementById('sp-amount').value);
             const note = document.getElementById('sp-note').value.trim();
             if (!supplier_name || !amount) { showFeedback(fb, 'Supplier name and amount required.', 'error'); return; }
-            api('/supplier-payments', { method: 'POST', body: JSON.stringify({ supplier_name, amount, note }) }).then(() => {
+            api('/supplier-payments', { method: 'POST', body: JSON.stringify({ supplier_name, supplier_id, amount, note }) }).then(() => {
                 showFeedback(fb, 'Supplier payable added!', 'success');
                 document.getElementById('add-supplier-payment-form').reset();
                 loadSupplierPayments();
@@ -1453,6 +1701,112 @@
             const div = document.createElement('div');
             div.textContent = str;
             return div.innerHTML;
+        }
+
+        // ─── Suppliers ──────────────────────────────────────────
+        let editingSupplierId = null;
+
+        function loadSuppliers() {
+            api('/suppliers').then(suppliers => {
+                const tbody = document.getElementById('suppliers-table-body');
+                if (suppliers.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-muted);">No suppliers registered.</td></tr>';
+                    document.getElementById('sup-total-payable').textContent = 'Tk 0';
+                    document.getElementById('sup-total-paid').textContent = 'Tk 0';
+                    document.getElementById('sup-total-pending').textContent = 'Tk 0';
+                    return;
+                }
+                tbody.innerHTML = suppliers.map(s => {
+                    const pending = s.pending || 0;
+                    return `<tr>
+                        <td><div><p style="font-weight:600;">${escapeHtml(s.name)}</p><p style="font-size:11px;color:var(--text-muted);">${escapeHtml(s.note)||''}</p></div></td>
+                        <td style="font-size:12px;">${escapeHtml(s.phone)||'-'}<br><span style="color:var(--text-muted);">${escapeHtml(s.email)||''}</span></td>
+                        <td style="font-weight:600;">Tk ${(s.total_payable||0).toLocaleString()}</td>
+                        <td style="font-weight:600;color:#10B981;">Tk ${(s.total_paid||0).toLocaleString()}</td>
+                        <td style="font-weight:700;${pending>0?'color:#EF4444;':'color:#10B981;'}">Tk ${pending.toLocaleString()}</td>
+                        <td style="text-align:center;">
+                            <button onclick="editSupplier(${s.id})" style="color:#2563EB;background:none;border:none;cursor:pointer;margin-right:8px;font-size:14px;" title="Edit"><i class="fa-solid fa-pen"></i></button>
+                            <button onclick="deleteSupplier(${s.id},'${escapeHtml(s.name)}')" style="color:#EF4444;background:none;border:none;cursor:pointer;font-size:14px;" title="Delete"><i class="fa-solid fa-trash"></i></button>
+                        </td>
+                    </tr>`;
+                }).join('');
+                const totalPayable = suppliers.reduce((sum, s) => sum + (s.total_payable||0), 0);
+                const totalPaid = suppliers.reduce((sum, s) => sum + (s.total_paid||0), 0);
+                document.getElementById('sup-total-payable').textContent = 'Tk ' + totalPayable.toLocaleString();
+                document.getElementById('sup-total-paid').textContent = 'Tk ' + totalPaid.toLocaleString();
+                document.getElementById('sup-total-pending').textContent = 'Tk ' + (totalPayable - totalPaid).toLocaleString();
+            }).catch(() => {});
+        }
+
+        function showAddSupplier() {
+            editingSupplierId = null;
+            document.getElementById('supplier-form-title').textContent = 'Register New Supplier';
+            document.getElementById('sup-name').value = '';
+            document.getElementById('sup-phone').value = '';
+            document.getElementById('sup-email').value = '';
+            document.getElementById('sup-address').value = '';
+            document.getElementById('sup-note').value = '';
+            document.getElementById('supplier-form-card').classList.remove('hidden');
+        }
+
+        function hideSupplierForm() {
+            document.getElementById('supplier-form-card').classList.add('hidden');
+            editingSupplierId = null;
+        }
+
+        function saveSupplier() {
+            const fb = document.getElementById('supplier-feedback');
+            const name = document.getElementById('sup-name').value.trim();
+            const phone = document.getElementById('sup-phone').value.trim();
+            const email = document.getElementById('sup-email').value.trim();
+            const address = document.getElementById('sup-address').value.trim();
+            const note = document.getElementById('sup-note').value.trim();
+            if (!name) { showFeedback(fb, 'Supplier name is required.', 'error'); return; }
+            const btn = document.getElementById('sup-submit-btn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving...';
+
+            if (editingSupplierId) {
+                api('/suppliers/' + editingSupplierId, { method: 'PUT', body: JSON.stringify({ name, phone, email, address, note }) }).then(() => {
+                    showFeedback(fb, 'Supplier updated!', 'success');
+                    hideSupplierForm();
+                    loadSuppliers();
+                }).catch(err => showFeedback(fb, err.message, 'error')).finally(() => {
+                    btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-check"></i> Save Supplier';
+                });
+            } else {
+                api('/suppliers', { method: 'POST', body: JSON.stringify({ name, phone, email, address, note }) }).then(() => {
+                    showFeedback(fb, 'Supplier registered!', 'success');
+                    hideSupplierForm();
+                    loadSuppliers();
+                    loadDashboard();
+                }).catch(err => showFeedback(fb, err.message, 'error')).finally(() => {
+                    btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-check"></i> Save Supplier';
+                });
+            }
+        }
+
+        function editSupplier(id) {
+            api('/suppliers').then(suppliers => {
+                const s = suppliers.find(x => x.id === id);
+                if (!s) return;
+                editingSupplierId = id;
+                document.getElementById('supplier-form-title').textContent = 'Edit: ' + s.name;
+                document.getElementById('sup-name').value = s.name;
+                document.getElementById('sup-phone').value = s.phone || '';
+                document.getElementById('sup-email').value = s.email || '';
+                document.getElementById('sup-address').value = s.address || '';
+                document.getElementById('sup-note').value = s.note || '';
+                document.getElementById('supplier-form-card').classList.remove('hidden');
+            }).catch(() => {});
+        }
+
+        function deleteSupplier(id, name) {
+            if (!confirm('Delete supplier "' + name + '"? This cannot be undone.')) return;
+            api('/suppliers/' + id, { method: 'DELETE' }).then(() => {
+                loadSuppliers();
+                loadDashboard();
+            }).catch(err => alert(err.message));
         }
 
         function toggleSidebar() {

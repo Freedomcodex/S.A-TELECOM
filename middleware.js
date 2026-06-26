@@ -14,7 +14,8 @@ const ALL_PERMISSIONS = [
   'delete_entries',
   'change_settings',
   'view_profit',
-  'manage_users'
+  'manage_users',
+  'manage_suppliers'
 ];
 
 function generateToken(user) {

@@ -287,6 +287,59 @@ router.delete('/dues/:id', authenticate, adminOnly, (req, res) => {
   res.json({ success: true });
 });
 
+// ─── Suppliers CRUD ────────────────────────────────────────────
+
+router.get('/suppliers', authenticate, (req, res) => {
+  const suppliers = getAll(`
+    SELECT s.*,
+      COALESCE((SELECT SUM(sp.amount) FROM supplier_payments sp WHERE sp.supplier_id = s.id), 0) as total_payable,
+      COALESCE((SELECT SUM(pr.amount) FROM supplier_pay_records pr JOIN supplier_payments sp ON pr.supplier_payment_id = sp.id WHERE sp.supplier_id = s.id), 0) as total_paid
+    FROM suppliers s
+    ORDER BY s.name ASC
+  `);
+  suppliers.forEach(s => { s.pending = s.total_payable - s.total_paid; });
+  res.json(suppliers);
+});
+
+router.post('/suppliers', authenticate, (req, res) => {
+  const { name, phone, address, email, note } = req.body;
+  if (!name) return res.status(400).json({ error: 'Supplier name required' });
+  const existing = getOne('SELECT id FROM suppliers WHERE name = ?', [name]);
+  if (existing) return res.status(409).json({ error: 'Supplier name already exists' });
+  qRun('INSERT INTO suppliers (name, phone, address, email, note, created_by) VALUES (?, ?, ?, ?, ?, ?)',
+    [name, phone || '', address || '', email || '', note || '', req.user.id]);
+  const supplier = getOne('SELECT * FROM suppliers WHERE id = ?', [maxId('suppliers')]);
+  res.status(201).json(supplier);
+});
+
+router.put('/suppliers/:id', authenticate, (req, res) => {
+  const { name, phone, address, email, note } = req.body;
+  const sid = parseInt(req.params.id);
+  const supplier = getOne('SELECT * FROM suppliers WHERE id = ?', [sid]);
+  if (!supplier) return res.status(404).json({ error: 'Supplier not found' });
+  qRun('UPDATE suppliers SET name=?, phone=?, address=?, email=?, note=? WHERE id=?',
+    [name || supplier.name, phone !== undefined ? phone : supplier.phone,
+     address !== undefined ? address : supplier.address,
+     email !== undefined ? email : supplier.email,
+     note !== undefined ? note : supplier.note, sid]);
+  res.json(getOne('SELECT * FROM suppliers WHERE id = ?', [sid]));
+});
+
+router.delete('/suppliers/:id', authenticate, adminOnly, (req, res) => {
+  const sid = parseInt(req.params.id);
+  const payments = getOne('SELECT COUNT(*) as cnt FROM supplier_payments WHERE supplier_id = ?', [sid]);
+  if (payments && payments.cnt > 0) {
+    return res.status(400).json({ error: 'Cannot delete supplier with existing payments. Delete payments first.' });
+  }
+  const result = qRun('DELETE FROM suppliers WHERE id = ?', [sid]);
+  if (result.changes === 0) return res.status(404).json({ error: 'Supplier not found' });
+  res.json({ success: true });
+});
+
+router.get('/suppliers/select', authenticate, (req, res) => {
+  res.json(getAll('SELECT id, name FROM suppliers ORDER BY name ASC'));
+});
+
 // ─── Supplier Payments ──────────────────────────────────────────
 
 router.get('/supplier-payments', authenticate, (req, res) => {
@@ -305,7 +358,7 @@ router.get('/supplier-payments', authenticate, (req, res) => {
 });
 
 router.post('/supplier-payments', authenticate, (req, res) => {
-  const { supplier_name, amount: rawAmount, note } = req.body;
+  const { supplier_name, supplier_id, amount: rawAmount, note } = req.body;
   if (!supplier_name || !rawAmount) {
     return res.status(400).json({ error: 'supplier_name and amount required' });
   }
@@ -315,8 +368,10 @@ router.post('/supplier-payments', authenticate, (req, res) => {
     return res.status(400).json({ error: 'Amount must be a positive number' });
   }
 
-  qRun('INSERT INTO supplier_payments (supplier_name, amount, note, created_by) VALUES (?, ?, ?, ?)',
-    [supplier_name, amount, note || '', req.user.id]);
+  const sid = supplier_id ? parseInt(supplier_id) : null;
+
+  qRun('INSERT INTO supplier_payments (supplier_id, supplier_name, amount, note, created_by) VALUES (?, ?, ?, ?, ?)',
+    [sid, supplier_name, amount, note || '', req.user.id]);
 
   const payment = getOne('SELECT * FROM supplier_payments WHERE id = ?', [maxId('supplier_payments')]);
   res.status(201).json(payment);
@@ -383,13 +438,16 @@ router.get('/dashboard/summary', authenticate, (req, res) => {
     'SELECT COALESCE(SUM(c.amount), 0) as total FROM collections c WHERE date(c.collected_at) = ?', [today]
   );
 
+  const totalSuppliers = getOne('SELECT COUNT(*) as cnt FROM suppliers');
+
   res.json({
     openingBalance: roundAmount(openingBalance),
     mainLedgerTotal: roundAmount(mainTotal),
     cashOutTotal: roundAmount(cashOutTotal),
     netLedgerTotal: roundAmount(openingBalance + mainTotal - cashOutTotal),
     totalDues: roundAmount(totalDues),
-    totalCollectedToday: roundAmount(collectedRow.total)
+    totalCollectedToday: roundAmount(collectedRow.total),
+    totalSuppliers: totalSuppliers ? totalSuppliers.cnt : 0
   });
 });
 
@@ -561,6 +619,19 @@ router.get('/activity', authenticate, (req, res) => {
       action: 'due_collected',
       message: `${c.user_name || 'User'} collected Tk ${c.amount.toLocaleString()} from ${c.client_name || 'Client'}`,
       created_at: c.collected_at
+    });
+  });
+
+  const recentSupplierRegistrations = getAll(`
+    SELECT s.name, s.created_at, u.display_name as user_name
+    FROM suppliers s LEFT JOIN users u ON s.created_by = u.id
+    ORDER BY s.id DESC LIMIT 10
+  `);
+  recentSupplierRegistrations.forEach(s => {
+    items.push({
+      action: 'supplier_registered',
+      message: `${s.user_name || 'User'} registered supplier: ${s.name}`,
+      created_at: s.created_at
     });
   });
 

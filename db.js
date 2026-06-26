@@ -9,7 +9,7 @@ const EXPORT_DIR = path.join(__dirname, 'data', 'exports');
 const DEFAULT_ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'admin';
 const DEFAULT_ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
 
-const ALLOWED_TABLES = ['users', 'entries', 'dues', 'collections', 'settings', 'supplier_payments', 'supplier_pay_records'];
+const ALLOWED_TABLES = ['users', 'entries', 'dues', 'collections', 'settings', 'suppliers', 'supplier_payments', 'supplier_pay_records'];
 
 const BACKUP_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
 const HOURLY_KEEP = 12;
@@ -429,8 +429,19 @@ function createSchema() {
       key TEXT PRIMARY KEY,
       value TEXT NOT NULL
     );
+    CREATE TABLE IF NOT EXISTS suppliers (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      phone TEXT DEFAULT '',
+      address TEXT DEFAULT '',
+      email TEXT DEFAULT '',
+      note TEXT DEFAULT '',
+      created_by INTEGER REFERENCES users(id),
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
     CREATE TABLE IF NOT EXISTS supplier_payments (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
+      supplier_id INTEGER REFERENCES suppliers(id),
       supplier_name TEXT NOT NULL,
       amount REAL NOT NULL CHECK(amount > 0),
       note TEXT DEFAULT '',
@@ -473,6 +484,11 @@ function runMigrations() {
   if (!ucols.includes('permissions')) {
     db.run("ALTER TABLE users ADD COLUMN permissions TEXT DEFAULT ''");
     console.log('[DB] Migration: added permissions to users');
+  }
+  const spcols = getAll("PRAGMA table_info(supplier_payments)").map(c => c.name);
+  if (!spcols.includes('supplier_id')) {
+    db.run("ALTER TABLE supplier_payments ADD COLUMN supplier_id INTEGER REFERENCES suppliers(id)");
+    console.log('[DB] Migration: added supplier_id to supplier_payments');
   }
 }
 
