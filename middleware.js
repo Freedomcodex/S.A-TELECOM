@@ -1,7 +1,7 @@
 const jwt = require('jsonwebtoken');
 const { getOne } = require('./db');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'satelcom-ledger-secret-key-2026';
+const JWT_SECRET = process.env.JWT_SECRET || 'change-me-in-production';
 
 const ALL_PERMISSIONS = [
   'add_sale',

@@ -6,6 +6,8 @@ const bcrypt = require('bcryptjs');
 const DB_PATH = path.join(__dirname, 'data', 'satelcom.db');
 const BACKUP_DIR = path.join(__dirname, 'data', 'backups');
 const EXPORT_DIR = path.join(__dirname, 'data', 'exports');
+const DEFAULT_ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'admin';
+const DEFAULT_ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
 
 const ALLOWED_TABLES = ['users', 'entries', 'dues', 'collections', 'settings', 'supplier_payments', 'supplier_pay_records'];
 
@@ -448,8 +450,8 @@ function createSchema() {
 function seedDefaults() {
   const rows = db.exec('SELECT COUNT(*) as count FROM users');
   if (!rows.length || !rows[0].values.length || rows[0].values[0][0] === 0) {
-    const hash = bcrypt.hashSync('admin123', 10);
-    db.run('INSERT INTO users (username, password_hash, display_name, role) VALUES (?, ?, ?, ?)', ['admin', hash, 'Admin', 'admin']);
+    const hash = bcrypt.hashSync(DEFAULT_ADMIN_PASSWORD, 10);
+    db.run('INSERT INTO users (username, password_hash, display_name, role) VALUES (?, ?, ?, ?)', [DEFAULT_ADMIN_USERNAME, hash, 'Admin', 'admin']);
   }
   const srows = db.exec('SELECT COUNT(*) as count FROM settings');
   if (!srows.length || !srows[0].values.length || srows[0].values[0][0] === 0) {

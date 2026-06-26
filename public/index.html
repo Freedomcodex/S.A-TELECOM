@@ -208,7 +208,7 @@
                             <i class="fa-solid fa-right-to-bracket mr-2"></i>Sign In
                         </button>
                     </form>
-                    <p style="text-align:center;font-size:11px;color:#CBD5E1;margin-top:20px;">Default: admin / admin123</p>
+                    <p style="text-align:center;font-size:11px;color:#CBD5E1;margin-top:20px;">Default: admin / admin123 (or your configured environment values)</p>
                 </div>
             </div>
         </div>
@@ -833,7 +833,7 @@
     </div>
 
     <script>
-        let token = localStorage.getItem('token');
+        let token = sessionStorage.getItem('token');
         let currentUser = null;
         let userPermissions = [];
         let topItemsChart = null;
@@ -874,7 +874,12 @@
             if (token) headers['Authorization'] = 'Bearer ' + token;
             return fetch('/api' + path, { ...options, headers }).then(res => {
                 if (res.status === 401) { logout(); throw new Error('Session expired'); }
-                return res.json().then(data => { if (!res.ok) throw new Error(data.error); return data; });
+                return res.text().then(text => {
+                    let data;
+                    try { data = JSON.parse(text); } catch { throw new Error(text || 'Invalid server response'); }
+                    if (!res.ok) throw new Error(data.error || 'Request failed');
+                    return data;
+                });
             });
         }
 
@@ -889,13 +894,17 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ username, password })
             }).then(res => {
-                if (!res.ok) return res.json().then(d => { throw new Error(d.error || 'Login failed'); });
-                return res.json();
+                return res.text().then(text => {
+                    let data;
+                    try { data = JSON.parse(text); } catch { throw new Error(text || 'Invalid server response'); }
+                    if (!res.ok) throw new Error(data.error || 'Login failed');
+                    return data;
+                });
             }).then(data => {
                 token = data.token;
                 currentUser = data.user;
                 userPermissions = data.user.permissions || [];
-                localStorage.setItem('token', token);
+                sessionStorage.setItem('token', token);
                 document.getElementById('login-overlay').classList.remove('active');
                 document.getElementById('sidebar-user').textContent = data.user.display_name || data.user.username;
                 document.getElementById('sidebar-role').textContent = data.user.role === 'admin' ? 'Administrator' : 'Staff';
@@ -907,7 +916,7 @@
         }
 
         function logout() {
-            localStorage.removeItem('token');
+            sessionStorage.removeItem('token');
             token = null;
             currentUser = null;
             document.getElementById('login-overlay').classList.add('active');
