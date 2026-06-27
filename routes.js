@@ -821,7 +821,7 @@ async function listDriveBackups(drive, folderId) {
   return res.data.files || [];
 }
 
-router.get('/auth/google', authenticate, (req, res) => {
+router.get('/auth/google', (req, res) => {
   if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
     return res.status(400).json({ error: 'Google Drive not configured. Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET.' });
   }
@@ -839,7 +839,7 @@ router.get('/auth/google', authenticate, (req, res) => {
   res.redirect(url);
 });
 
-router.get('/auth/google/callback', authenticate, async (req, res) => {
+router.get('/auth/google/callback', async (req, res) => {
   try {
     const { code } = req.query;
     if (!code) return res.redirect('/?error=google_no_code');
