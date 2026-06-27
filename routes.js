@@ -636,6 +636,7 @@ router.delete('/admin/clear-data', authenticate, adminOnly, (req, res) => {
   qRun('DELETE FROM dues');
   qRun('DELETE FROM suppliers');
   qRun('DELETE FROM customers');
+  qRun('DELETE FROM google_tokens');
   qRun('DELETE FROM settings');
   qRun("INSERT OR IGNORE INTO settings (key, value) VALUES ('opening_balance', '4300')");
   qRun("INSERT OR IGNORE INTO settings (key, value) VALUES ('currency_symbol', 'OMR')");
@@ -753,5 +754,283 @@ router.get('/activity', authenticate, (req, res) => {
   items.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
   res.json(items.slice(0, 20));
 });
+
+// ─── Google Drive Cloud Backup ───────────────────────────────────
+
+const { google } = require('googleapis');
+
+function resolveRedirectUri(req) {
+  if (process.env.GOOGLE_REDIRECT_URI) return process.env.GOOGLE_REDIRECT_URI;
+  const host = req ? req.get('host') : (process.env.BASE_URL || `localhost:${process.env.PORT || 3000}`);
+  const proto = req && req.get('x-forwarded-proto') ? 'https' : (host?.includes('localhost') ? 'http' : 'https');
+  return `${proto}://${host}/api/auth/google/callback`;
+}
+
+function getGoogleClient() {
+  const row = getOne('SELECT * FROM google_tokens ORDER BY id DESC LIMIT 1');
+  if (!row) return null;
+  const oauth2Client = new google.auth.OAuth2(
+    process.env.GOOGLE_CLIENT_ID,
+    process.env.GOOGLE_CLIENT_SECRET
+  );
+  oauth2Client.setCredentials({
+    access_token: row.access_token,
+    refresh_token: row.refresh_token,
+    expiry_date: row.token_expiry ? new Date(row.token_expiry).getTime() : null
+  });
+  return oauth2Client;
+}
+
+async function refreshTokenIfNeeded() {
+  const client = getGoogleClient();
+  if (!client) return null;
+  try {
+    const token = await client.getAccessToken();
+    const row = getOne('SELECT * FROM google_tokens ORDER BY id DESC LIMIT 1');
+    if (row) {
+      qRun('UPDATE google_tokens SET access_token=?, token_expiry=?, updated_at=CURRENT_TIMESTAMP WHERE id=?',
+        [token.token, new Date(client.credentials.expiry_date).toISOString(), row.id]);
+    }
+    return client;
+  } catch {
+    return null;
+  }
+}
+
+async function ensureDriveFolder(drive) {
+  const res = await drive.files.list({
+    q: "name='LedgerPro Backups' and mimeType='application/vnd.google-apps.folder' and trashed=false",
+    fields: 'files(id,name)',
+    spaces: 'drive'
+  });
+  if (res.data.files && res.data.files.length > 0) return res.data.files[0].id;
+  const folder = await drive.files.create({
+    requestBody: { name: 'LedgerPro Backups', mimeType: 'application/vnd.google-apps.folder' },
+    fields: 'id'
+  });
+  return folder.data.id;
+}
+
+async function listDriveBackups(drive, folderId) {
+  const res = await drive.files.list({
+    q: `'${folderId}' in parents and name contains '.json' and trashed=false`,
+    fields: 'files(id,name,size,createdTime,modifiedTime)',
+    orderBy: 'modifiedTime desc',
+    spaces: 'drive'
+  });
+  return res.data.files || [];
+}
+
+router.get('/auth/google', authenticate, (req, res) => {
+  if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+    return res.status(400).json({ error: 'Google Drive not configured. Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET.' });
+  }
+  const redirectUri = resolveRedirectUri(req);
+  const oauth2Client = new google.auth.OAuth2(
+    process.env.GOOGLE_CLIENT_ID,
+    process.env.GOOGLE_CLIENT_SECRET,
+    redirectUri
+  );
+  const url = oauth2Client.generateAuthUrl({
+    access_type: 'offline',
+    scope: ['https://www.googleapis.com/auth/drive.file'],
+    prompt: 'consent'
+  });
+  res.redirect(url);
+});
+
+router.get('/auth/google/callback', authenticate, async (req, res) => {
+  try {
+    const { code } = req.query;
+    if (!code) return res.redirect('/?error=google_no_code');
+    const redirectUri = resolveRedirectUri(req);
+    const oauth2Client = new google.auth.OAuth2(
+      process.env.GOOGLE_CLIENT_ID,
+      process.env.GOOGLE_CLIENT_SECRET,
+      redirectUri
+    );
+    const { tokens } = await oauth2Client.getToken(code);
+    oauth2Client.setCredentials(tokens);
+
+    // Get user email
+    const oauth2 = google.oauth2({ version: 'v2', auth: oauth2Client });
+    const userInfo = await oauth2.userinfo.get();
+    const email = userInfo.data.email || '';
+
+    // Delete old tokens and save new ones
+    qRun('DELETE FROM google_tokens');
+    qRun('INSERT INTO google_tokens (access_token, refresh_token, token_expiry, google_email) VALUES (?, ?, ?, ?)',
+      [tokens.access_token, tokens.refresh_token || '', new Date(tokens.expiry_date).toISOString(), email]);
+
+    // Try to create/reuse Drive folder on connect
+    try {
+      const drive = google.drive({ version: 'v3', auth: oauth2Client });
+      await ensureDriveFolder(drive);
+    } catch {}
+
+    res.redirect('/?google_connected=1');
+  } catch (e) {
+    console.error('Google OAuth error:', e.message);
+    res.redirect('/?error=google_auth_failed');
+  }
+});
+
+router.get('/cloud/status', authenticate, async (req, res) => {
+  const row = getOne('SELECT google_email FROM google_tokens ORDER BY id DESC LIMIT 1');
+  const autoBackup = getOne("SELECT value FROM settings WHERE key='google_auto_backup'");
+  const lastBackup = getOne("SELECT value FROM settings WHERE key='last_google_backup'");
+  if (!row) return res.json({ connected: false, email: null, autoBackup: false, lastBackup: null });
+  res.json({
+    connected: true,
+    email: row.google_email,
+    autoBackup: autoBackup ? autoBackup.value === '1' : false,
+    lastBackup: lastBackup ? lastBackup.value : null
+  });
+});
+
+router.post('/cloud/backup', authenticate, async (req, res) => {
+  const client = await refreshTokenIfNeeded();
+  if (!client) return res.status(400).json({ error: 'Google Drive not connected. Go to Backup tab and connect your Google account.' });
+  try {
+    const drive = google.drive({ version: 'v3', auth: client });
+    const folderId = await ensureDriveFolder(drive);
+
+    // Export data
+    const data = exportAllData();
+    if (!data) return res.status(500).json({ error: 'Failed to export data' });
+
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+    const shopName = (getOne("SELECT value FROM settings WHERE key='shop_name'") || {}).value || 'Ledger';
+    const fileName = `Ledger_${shopName.replace(/\s+/g, '_')}_${timestamp}.json`;
+    const fileContent = JSON.stringify(data, null, 2);
+
+    // Upload to Drive
+    const response = await drive.files.create({
+      requestBody: { name: fileName, parents: [folderId] },
+      media: { mimeType: 'application/json', body: fileContent }
+    });
+
+    // Update last backup time
+    qRun("INSERT OR REPLACE INTO settings (key, value) VALUES ('last_google_backup', ?)", [new Date().toISOString()]);
+
+    // Cleanup old backups (keep last 30)
+    const backups = await listDriveBackups(drive, folderId);
+    if (backups.length > 30) {
+      const toDelete = backups.slice(30);
+      for (const b of toDelete) {
+        try { await drive.files.delete({ fileId: b.id }); } catch {}
+      }
+    }
+
+    res.json({ success: true, message: 'Backup uploaded to Google Drive!', file: fileName });
+  } catch (e) {
+    console.error('Drive backup error:', e.message);
+    res.status(500).json({ error: 'Backup failed: ' + e.message });
+  }
+});
+
+router.get('/cloud/backups', authenticate, async (req, res) => {
+  const client = await refreshTokenIfNeeded();
+  if (!client) return res.status(400).json({ error: 'Google Drive not connected.' });
+  try {
+    const drive = google.drive({ version: 'v3', auth: client });
+    const folderId = await ensureDriveFolder(drive);
+    const files = await listDriveBackups(drive, folderId);
+    res.json(files.map(f => ({
+      id: f.id,
+      name: f.name,
+      size: f.size ? parseInt(f.size) : 0,
+      createdTime: f.createdTime,
+      modifiedTime: f.modifiedTime
+    })));
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+router.post('/cloud/restore', authenticate, async (req, res) => {
+  const client = await refreshTokenIfNeeded();
+  if (!client) return res.status(400).json({ error: 'Google Drive not connected.' });
+  const { fileId } = req.body;
+  if (!fileId) return res.status(400).json({ error: 'fileId required' });
+  try {
+    const drive = google.drive({ version: 'v3', auth: client });
+    const response = await drive.files.get({ fileId, alt: 'media' }, { responseType: 'json' });
+    const data = response.data;
+
+    const result = importFromData(data);
+    if (result.ok) {
+      res.json({ success: true, message: 'Data restored from Google Drive backup!' });
+    } else {
+      res.status(500).json({ error: result.error });
+    }
+  } catch (e) {
+    res.status(500).json({ error: 'Restore failed: ' + e.message });
+  }
+});
+
+router.post('/cloud/auto', authenticate, (req, res) => {
+  const { enabled } = req.body;
+  qRun("INSERT OR REPLACE INTO settings (key, value) VALUES ('google_auto_backup', ?)", [enabled ? '1' : '0']);
+  // Restart the auto-backup timer
+  if (typeof restartGoogleAutoBackup === 'function') restartGoogleAutoBackup();
+  res.json({ success: true, autoBackup: !!enabled });
+});
+
+router.delete('/cloud/disconnect', authenticate, (req, res) => {
+  qRun('DELETE FROM google_tokens');
+  qRun("INSERT OR REPLACE INTO settings (key, value) VALUES ('google_auto_backup', '0')");
+  qRun("INSERT OR REPLACE INTO settings (key, value) VALUES ('last_google_backup', '')");
+  res.json({ success: true, message: 'Google account disconnected.' });
+});
+
+// ─── Google Auto-Backup Timer ────────────────────────────────────
+
+let googleBackupTimer = null;
+
+async function runGoogleAutoBackup() {
+  try {
+    const setting = getOne("SELECT value FROM settings WHERE key='google_auto_backup'");
+    if (!setting || setting.value !== '1') return;
+    const token = getOne('SELECT id FROM google_tokens LIMIT 1');
+    if (!token) return;
+
+    const client = await refreshTokenIfNeeded();
+    if (!client) return;
+    const drive = google.drive({ version: 'v3', auth: client });
+    const folderId = await ensureDriveFolder(drive);
+    const data = exportAllData();
+    if (!data) return;
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+    const shopName = (getOne("SELECT value FROM settings WHERE key='shop_name'") || {}).value || 'Ledger';
+    const fileName = `Ledger_${shopName.replace(/\s+/g, '_')}_${timestamp}.json`;
+    await drive.files.create({
+      requestBody: { name: fileName, parents: [folderId] },
+      media: { mimeType: 'application/json', body: JSON.stringify(data, null, 2) }
+    });
+    qRun("INSERT OR REPLACE INTO settings (key, value) VALUES ('last_google_backup', ?)", [new Date().toISOString()]);
+
+    // Cleanup old backups
+    const backups = await listDriveBackups(drive, folderId);
+    if (backups.length > 30) {
+      const toDelete = backups.slice(30);
+      for (const b of toDelete) {
+        try { await drive.files.delete({ fileId: b.id }); } catch {}
+      }
+    }
+  } catch (e) {
+    console.error('[Google Auto-Backup]', e.message);
+  }
+}
+
+function restartGoogleAutoBackup() {
+  if (googleBackupTimer) clearInterval(googleBackupTimer);
+  googleBackupTimer = setInterval(runGoogleAutoBackup, 5 * 60 * 1000);
+  // Also run once after 30 seconds
+  setTimeout(runGoogleAutoBackup, 30000);
+}
+
+// Start auto-backup timer after module loads
+setTimeout(restartGoogleAutoBackup, 5000);
 
 module.exports = router;

@@ -788,6 +788,48 @@
                         </table>
                     </div>
                 </div>
+
+                <!-- Google Drive Cloud Backup -->
+                <div class="glass-card" style="padding:24px;">
+                    <h3 style="font-size:13px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:8px;margin-bottom:4px;"><i class="fa-brands fa-google-drive" style="color:#4285F4;"></i> Google Drive Cloud Backup</h3>
+                    <p style="font-size:12px;color:var(--text-muted);margin-bottom:20px;">Backup your data to Google Drive. Connect your Gmail to enable cloud backups.</p>
+
+                    <div id="google-drive-status">
+                        <div id="gd-not-connected" style="text-align:center;padding:20px 0;">
+                            <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">Not connected to Google Drive.</p>
+                            <button onclick="connectGoogleDrive()" class="btn-primary" style="background:#4285F4;box-shadow:0 2px 8px rgba(66,133,244,0.3);"><i class="fa-brands fa-google"></i> Connect Google Account</button>
+                        </div>
+                        <div id="gd-connected" style="display:none;">
+                            <div style="display:flex;align-items:center;gap:12px;padding:12px 16px;background:#F0FDF4;border-radius:10px;margin-bottom:16px;">
+                                <i class="fa-brands fa-google" style="color:#4285F4;font-size:20px;"></i>
+                                <div style="flex:1;">
+                                    <span style="font-size:13px;font-weight:600;color:var(--text);" id="gd-email">-</span>
+                                    <span style="font-size:11px;color:#10B981;display:block;">Connected</span>
+                                </div>
+                                <span id="gd-last-backup" style="font-size:11px;color:var(--text-muted);"></span>
+                            </div>
+                            <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px;">
+                                <button onclick="cloudBackup()" class="btn-primary" id="gd-backup-btn"><i class="fa-solid fa-cloud-arrow-up"></i> Backup Now</button>
+                                <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text);cursor:pointer;">
+                                    <input type="checkbox" id="gd-auto-toggle" onchange="toggleAutoBackup(this.checked)" style="accent-color:var(--primary);width:16px;height:16px;">
+                                    Auto Backup (every 5 min)
+                                </label>
+                            </div>
+                            <div id="gd-cloud-backups" style="border-top:1px solid var(--border);padding-top:16px;">
+                                <h4 style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:12px;">Cloud Backups</h4>
+                                <div style="overflow-x:auto;max-height:250px;overflow-y:auto;">
+                                    <table class="table-modern" style="width:100%;">
+                                        <thead><tr><th>File Name</th><th>Size</th><th>Date</th><th style="text-align:center;">Action</th></tr></thead>
+                                        <tbody id="gd-backups-list"><tr><td colspan="4" style="text-align:center;color:var(--text-muted);">Loading...</td></tr></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border);text-align:right;">
+                                <button onclick="disconnectGoogleDrive()" class="btn-primary" style="background:#EF4444;box-shadow:0 2px 8px rgba(239,68,68,0.3);"><i class="fa-solid fa-unlink"></i> Disconnect</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <!-- Suppliers Tab -->
@@ -1206,7 +1248,7 @@
             if (tabId === 'report-tab') loadReport();
             if (tabId === 'dues-tab') { loadDues(); loadSupplierPayments(); }
             if (tabId === 'settings-tab') loadOpeningBalance();
-            if (tabId === 'backup-tab') { checkHealth(); loadBackups(); }
+            if (tabId === 'backup-tab') { checkHealth(); loadBackups(); loadGoogleDriveStatus(); }
             if (tabId === 'suppliers-tab') loadSuppliers();
             if (tabId === 'customers-tab') loadCustomers();
             if (tabId === 'users-tab') loadUsers();
@@ -1221,6 +1263,19 @@
             loadDues();
             loadSupplierPayments();
             loadSuppliers();
+
+            // Handle Google OAuth redirect params
+            const params = new URLSearchParams(window.location.search);
+            if (params.get('google_connected')) {
+                const fb = document.getElementById('backup-feedback');
+                if (fb) { showFeedback(fb, 'Google Drive connected successfully!', 'success'); }
+                window.history.replaceState({}, '', '/');
+            }
+            if (params.get('error') === 'google_auth_failed') {
+                const fb = document.getElementById('backup-feedback');
+                if (fb) { showFeedback(fb, 'Google login failed. Please try again.', 'error'); }
+                window.history.replaceState({}, '', '/');
+            }
         }
 
         function applyPermissions() {
@@ -2008,6 +2063,92 @@
             const div = document.createElement('div');
             div.textContent = str;
             return div.innerHTML;
+        }
+
+        // ─── Google Drive ─────────────────────────────────────────
+
+        function loadGoogleDriveStatus() {
+            api('/cloud/status').then(s => {
+                const notConnected = document.getElementById('gd-not-connected');
+                const connected = document.getElementById('gd-connected');
+                if (s.connected) {
+                    notConnected.style.display = 'none';
+                    connected.style.display = 'block';
+                    document.getElementById('gd-email').textContent = s.email;
+                    document.getElementById('gd-auto-toggle').checked = s.autoBackup;
+                    const lb = document.getElementById('gd-last-backup');
+                    if (s.lastBackup) {
+                        const d = new Date(s.lastBackup);
+                        lb.textContent = 'Last: ' + d.toLocaleString();
+                    } else {
+                        lb.textContent = 'No backups yet';
+                    }
+                    loadCloudBackups();
+                } else {
+                    notConnected.style.display = 'block';
+                    connected.style.display = 'none';
+                }
+            }).catch(() => {});
+        }
+
+        function connectGoogleDrive() {
+            window.location.href = '/api/auth/google';
+        }
+
+        function cloudBackup() {
+            const btn = document.getElementById('gd-backup-btn');
+            btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Backing up...';
+            api('/cloud/backup', { method: 'POST' }).then(r => {
+                showFeedback(document.getElementById('backup-feedback'), r.message, 'success');
+                loadGoogleDriveStatus();
+            }).catch(err => {
+                showFeedback(document.getElementById('backup-feedback'), err.message || 'Backup failed', 'error');
+            }).finally(() => {
+                btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-cloud-arrow-up"></i> Backup Now';
+            });
+        }
+
+        function toggleAutoBackup(enabled) {
+            api('/cloud/auto', { method: 'POST', body: JSON.stringify({ enabled }) }).then(() => {
+                showFeedback(document.getElementById('backup-feedback'), enabled ? 'Auto backup enabled' : 'Auto backup disabled', 'success');
+            }).catch(err => {
+                showFeedback(document.getElementById('backup-feedback'), 'Failed: ' + err.message, 'error');
+                document.getElementById('gd-auto-toggle').checked = !enabled;
+            });
+        }
+
+        function loadCloudBackups() {
+            const tbody = document.getElementById('gd-backups-list');
+            api('/cloud/backups').then(files => {
+                if (!files || files.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--text-muted);">No cloud backups yet.</td></tr>';
+                    return;
+                }
+                tbody.innerHTML = files.map(f => {
+                    const d = new Date(f.createdTime);
+                    const size = f.size > 1024 ? Math.round(f.size/1024) + ' KB' : f.size + ' bytes';
+                    return '<tr><td>' + escapeHtml(f.name) + '</td><td>' + size + '</td><td>' + d.toLocaleString() + '</td><td style="text-align:center;"><button class="btn-primary" style="font-size:11px;padding:5px 10px;" onclick="restoreCloudBackup(\'' + f.id + '\', \'' + escapeHtml(f.name) + '\')"><i class="fa-solid fa-rotate-left"></i> Restore</button></td></tr>';
+                }).join('');
+            }).catch(() => {
+                tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--text-muted);">Failed to load cloud backups.</td></tr>';
+            });
+        }
+
+        function restoreCloudBackup(fileId, name) {
+            if (!confirm('Restore from "' + name + '"? Current data will be replaced. A local backup will be saved first. Continue?')) return;
+            const fb = document.getElementById('backup-feedback');
+            api('/cloud/restore', { method: 'POST', body: JSON.stringify({ fileId }) }).then(r => {
+                showFeedback(fb, r.message + ' Reloading...', 'success');
+                setTimeout(() => window.location.reload(), 1500);
+            }).catch(err => showFeedback(fb, 'Restore failed: ' + err.message, 'error'));
+        }
+
+        function disconnectGoogleDrive() {
+            if (!confirm('Disconnect Google Drive? Cloud backups will remain in your Drive but auto-backup will stop.')) return;
+            api('/cloud/disconnect', { method: 'DELETE' }).then(r => {
+                showFeedback(document.getElementById('backup-feedback'), r.message, 'success');
+                loadGoogleDriveStatus();
+            }).catch(err => showFeedback(document.getElementById('backup-feedback'), 'Failed: ' + err.message, 'error'));
         }
 
         // ─── Suppliers ──────────────────────────────────────────

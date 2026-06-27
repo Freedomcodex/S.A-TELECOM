@@ -466,6 +466,15 @@ function createSchema() {
       paid_by INTEGER REFERENCES users(id),
       paid_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
+    CREATE TABLE IF NOT EXISTS google_tokens (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      access_token TEXT NOT NULL,
+      refresh_token TEXT NOT NULL DEFAULT '',
+      token_expiry TEXT,
+      google_email TEXT DEFAULT '',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
   `);
 }
 
@@ -483,6 +492,8 @@ function seedDefaults() {
     db.run('INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)', ['contact_phone', process.env.CONTACT_PHONE || '']);
     db.run('INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)', ['contact_email', process.env.CONTACT_EMAIL || '']);
     db.run('INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)', ['contact_address', process.env.CONTACT_ADDRESS || '']);
+    db.run('INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)', ['google_auto_backup', '0']);
+    db.run('INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)', ['last_google_backup', '']);
   }
 }
 
