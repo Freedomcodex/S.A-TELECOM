@@ -1273,7 +1273,8 @@
             }
             if (params.get('error') === 'google_auth_failed') {
                 const fb = document.getElementById('backup-feedback');
-                if (fb) { showFeedback(fb, 'Google login failed. Please try again.', 'error'); }
+                const reason = params.get('reason');
+                if (fb) { showFeedback(fb, 'Google login failed' + (reason ? ': ' + decodeURIComponent(reason) : ''), 'error'); }
                 window.history.replaceState({}, '', '/');
             }
         }

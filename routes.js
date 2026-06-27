@@ -762,8 +762,9 @@ const { google } = require('googleapis');
 function resolveRedirectUri(req) {
   if (process.env.GOOGLE_REDIRECT_URI) return process.env.GOOGLE_REDIRECT_URI;
   const host = req ? req.get('host') : (process.env.BASE_URL || `localhost:${process.env.PORT || 3000}`);
-  const proto = req && req.get('x-forwarded-proto') ? 'https' : (host?.includes('localhost') ? 'http' : 'https');
-  return `${proto}://${host}/api/auth/google/callback`;
+  const proto = req ? req.get('x-forwarded-proto') || req.protocol : (host?.includes('localhost') ? 'http' : 'https');
+  const scheme = proto === 'https' || (typeof proto === 'string' && proto.startsWith('https')) ? 'https' : 'http';
+  return `${scheme}://${host}/api/auth/google/callback`;
 }
 
 function getGoogleClient() {
@@ -870,8 +871,9 @@ router.get('/auth/google/callback', async (req, res) => {
 
     res.redirect('/?google_connected=1');
   } catch (e) {
-    console.error('Google OAuth error:', e.message);
-    res.redirect('/?error=google_auth_failed');
+    console.error('Google OAuth error:', e.message, e.stack?.slice(0, 500));
+    const reason = encodeURIComponent(e.message.slice(0, 100));
+    res.redirect(`/?error=google_auth_failed&reason=${reason}`);
   }
 });
 
